@@ -3,7 +3,7 @@
  <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ระบบข้อสอบออนไลน์ by krupond</title>
+  <title>ระบบข้อสอบออนไลน์ DMTC</title>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#2563eb">
   
@@ -106,7 +106,7 @@
        </div>
        <div>
         <h1 class="text-2xl md:text-3xl font-bold">ระบบข้อสอบออนไลน์</h1>
-        <p class="text-sm text-blue-100">ครูปอนด์ วิทยาลัยเทคนิคดอนเมือง</p>
+        <p class="text-sm text-blue-100">วิทยาลัยเทคนิคดอนเมือง DMTC</p>
        </div>
       </div>
      </div>
@@ -153,8 +153,8 @@
     <!-- Footer -->
     <footer class="gradient-footer text-white py-4 px-6">
      <div class="max-w-6xl mx-auto text-center">
-      <p class="text-sm md:text-base">ระบบข้อสอบออนไลน์ วิทยาลัยเทคนิคดอนเมือง</p>
-      <p class="text-xs text-blue-200 mt-1">พัฒนาโดย ครูปอนด์ นายณรงค์เดช ชัยเดชะ @2026</p>
+      <p class="text-sm md:text-base">ระบบข้อสอบออนไลน์ วิทยาลัยเทคนิคดอนเมือง DMTC</p>
+      <p class="text-xs text-blue-200 mt-1">พัฒนาโดย ครูปอนด์ นายณรงค์เดช ชัยเดชะ @2026 V.3</p>
      </div>
     </footer>
     <!-- Admin Login Button --> <button id="admin-login-btn" onclick="showModal('admin-login-modal')" class="fixed bottom-20 right-4 w-12 h-12 bg-gray-800 hover:bg-gray-700 text-white rounded-full shadow-lg flex items-center justify-center transition z-40"> <i class="fas fa-user-shield"></i> </button>
@@ -258,7 +258,8 @@
     </main>
     <footer class="gradient-footer text-white py-4 px-6">
      <div class="max-w-6xl mx-auto text-center">
-      <p class="text-sm">ระบบข้อสอบออนไลน์ วิทยาลัยเทคนิคดอนเมือง</p>
+      <p class="text-sm md:text-base">ระบบข้อสอบออนไลน์ วิทยาลัยเทคนิคดอนเมือง DMTC</p>
+      <p class="text-xs text-blue-200 mt-1">พัฒนาโดย ครูปอนด์ นายณรงค์เดช ชัยเดชะ @2026 V.3</p>
      </div>
     </footer>
    </div>
@@ -851,7 +852,9 @@ Score: 1</pre>
     let deleteCallback = null;
     let currentGradingResult = null;
     let editingExamId = '';
-    let isSubmitting = false; // ป้องกันการส่งซ้ำซ้อน
+    let isSubmitting = false;
+
+    const THAI_LABELS = ['ก', 'ข', 'ค', 'ง', 'จ'];
 
     // MOCK dataSdk TO USE fetch()
     window.dataSdk = {
@@ -985,7 +988,7 @@ Score: 1</pre>
       showModal('confirm-delete-modal');
     }
 
-    // Data Helpers with member filtering
+    // Data Helpers
     function getMembers() {
       return appData.filter(d => d.type === 'member');
     }
@@ -1116,7 +1119,6 @@ Score: 1</pre>
         const existingChart = Chart.getChart(dailyCtx);
         if (existingChart) existingChart.destroy();
         
-        // คำนวณสถิติการสอบย้อนหลัง 7 วันจริงจาก Results
         const days = [];
         const counts = [];
         for (let i = 6; i >= 0; i--) {
@@ -1251,7 +1253,7 @@ Score: 1</pre>
               <button onclick="toggleExamVisibility('${e.__backendId}')" class="px-3 py-1 rounded text-white text-xs font-medium transition mb-1 ${e.is_visible ? 'bg-green-500 hover:bg-green-600' : 'bg-gray-400 hover:bg-gray-500'}" title="${e.is_visible ? 'ซ่อนรายวิชา' : 'แสดงรายวิชา'}">
                 <i class="fas fa-${e.is_visible ? 'eye' : 'eye-slash'} mr-1"></i>${e.is_visible ? 'แสดง' : 'ซ่อน'}
               </button>
-              <button onclick="toggleExamAnswer('${e.__backendId}')" class="px-3 py-1 rounded text-white text-xs font-medium transition mb-1 ${e.show_answer ? 'bg-purple-500 hover:bg-purple-600' : 'bg-gray-400 hover:bg-gray-500'}" title="${e.show_answer ? 'ปิดเฉลย' : 'เปิดเฉลย'}">
+              <button onclick="toggleExamAnswer('${e.__backendId}')" class="px-3 py-1 rounded text-white text-xs font-medium transition mb-1 ${e.show_answer ? 'bg-purple-500 hover:bg-purple-600' : 'bg-gray-400 hover:bg-gray-500'}" title="เฉลย">
                 <i class="fas fa-book mr-1"></i>เฉลย
               </button>
               <button onclick="toggleShuffleQuestions('${e.__backendId}')" class="px-3 py-1 rounded text-white text-xs font-medium transition mb-1 ${e.shuffle_questions ? 'bg-cyan-500 hover:bg-cyan-600' : 'bg-gray-400 hover:bg-gray-500'}" title="สุ่มข้อ">
@@ -1319,7 +1321,7 @@ Score: 1</pre>
               ${statusBadge}
             </td>
             <td class="px-4 py-3 text-center">
-              <button onclick="deleteStudent('${s.__backendId}')" class="text-red-500 hover:text-red-600 mx-1" title="ลบข้อมูลผู้สอบ">
+              <button onclick="deleteStudent('${s.__backendId}')" class="text-red-500 hover:text-red-600 p-1" title="ลบข้อมูลผู้สอบ">
                 <i class="fas fa-trash"></i>
               </button>
             </td>
@@ -1332,10 +1334,8 @@ Score: 1</pre>
       showConfirmDelete('คุณต้องการลบข้อมูลผู้สอบนี้ใช่หรือไม่?', async () => {
         const student = appData.find(d => d.__backendId === backendId && d.type === 'student');
         if (student) {
-          const result = await window.dataSdk.delete(student);
-          if (result.isOk) {
-            showAlert('success', 'สำเร็จ', 'ลบข้อมูลผู้สอบเรียบร้อยแล้ว');
-          }
+          await window.dataSdk.delete(student);
+          showAlert('success', 'สำเร็จ', 'ลบข้อมูลผู้สอบเรียบร้อยแล้ว');
         }
       });
     }
@@ -1394,7 +1394,6 @@ Score: 1</pre>
       `).join('');
     }
 
-    // ฟังก์ชันดูประวัติคำตอบของนักเรียนในหน้าผลสอบ (สำหรับครู/แอดมิน)
     function viewStudentAnswers(backendId) {
       const result = appData.find(d => d.__backendId === backendId && d.type === 'result');
       if (!result) return;
@@ -1417,7 +1416,6 @@ Score: 1</pre>
           const studentAns = answers.mc ? answers.mc[idx] : null;
           const isCorrect = studentAns === q.answer;
           
-          // ค้นหาข้อความของตัวเลือกที่นักเรียนเลือก
           let chosenChoiceText = 'ไม่ได้ตอบ';
           if (studentAns && q.choices) {
             const foundChoice = q.choices.find(c => c.key === studentAns);
@@ -1825,7 +1823,7 @@ Score: 1</pre>
       });
     }
 
-    // Exam Creation (รองรับการแปลงข้อสอบแบบยืดหยุ่น: ภาษาไทย, อังกฤษ, จีน + รูปภาพ [img:...])
+    // Exam Creation
     function parseMultipleChoice() {
       const input = document.getElementById('mc-input').value.trim();
       if (!input) {
@@ -1864,7 +1862,6 @@ Score: 1</pre>
 
           for (let i = 1; i < lines.length; i++) {
             const line = lines[i].trim();
-            // รองรับตัวเลือก ก-จ, A-E, 1-5
             const choiceMatch = line.match(/^([ก-ขคงจA-Ea-e1-5])[\.\)]\s*(.*)/);
             const answerMatch = line.match(/^(?:เฉลย|Answer|答案):\s*([ก-ขคงจA-Ea-e1-5])/i);
             const scoreMatch = line.match(/^(?:คะแนน|Score|分):\s*(\d+(?:\.\d+)?)/i);
@@ -2484,12 +2481,10 @@ Score: 1</pre>
 
           const questions = (typeof exam.questions === 'string') ? JSON.parse(exam.questions) : exam.questions;
           
-          const processedMc = questions.mc.map((q, qIndex) => {
-            return {
-              ...q,
-              originalIndex: qIndex
-            };
-          });
+          const processedMc = questions.mc.map((q, qIndex) => ({
+            ...q,
+            originalIndex: qIndex
+          }));
 
           const processedEssay = questions.essay.map((q, qIndex) => ({
             ...q,
@@ -2497,8 +2492,8 @@ Score: 1</pre>
           }));
 
           currentExam.parsedQuestions = {
-            mc: exam.shuffle_questions ? shuffleArray(processedMc) : processedMc,
-            essay: exam.shuffle_questions ? shuffleArray(processedEssay) : processedEssay
+            mc: exam.shuffle_questions ? shuffleArray([...processedMc]) : processedMc,
+            essay: exam.shuffle_questions ? shuffleArray([...processedEssay]) : processedEssay
           };
 
           showPage('exam');
@@ -2557,13 +2552,10 @@ Score: 1</pre>
       const container = document.getElementById('question-container');
 
       if (q.type === 'mc') {
-        // สลับลำดับตัวเลือก (Shuffle) ทุกครั้งที่เข้ามาแสดงผลข้อนี้ ถ้าเปิดใช้งาน shuffle_choices
         let displayChoices = [...q.choices];
         if (currentExam.shuffle_choices) {
           displayChoices = shuffleArray(displayChoices);
         }
-
-        const thaiPrefixes = ['ก', 'ข', 'ค', 'ง', 'จ', 'ฉ', 'ช', 'ซ', 'ฌ', 'ญ'];
 
         container.innerHTML = `
           <div class="fade-in">
@@ -2575,17 +2567,19 @@ Score: 1</pre>
             ${q.image ? `<img src="${q.image}" class="my-4 max-h-64 rounded-xl border shadow object-contain">` : ''}
             <div class="space-y-3">
               ${displayChoices.map((choice, idx) => {
-                const displayPrefix = thaiPrefixes[idx] || (idx + 1);
+                const thaiLabel = THAI_LABELS[idx] || (idx + 1);
+                const isSelected = studentAnswers.mc[q.originalIndex] === choice.key;
                 return `
-                <label class="flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition
-                  ${studentAnswers.mc[q.originalIndex] === choice.key ? 'border-primary-500 bg-primary-50' : 'border-gray-200 hover:border-primary-300'}">
-                  <input type="radio" name="mc-answer" value="${choice.key}" 
-                    ${studentAnswers.mc[q.originalIndex] === choice.key ? 'checked' : ''}
-                    onchange="selectMCAnswer(${q.originalIndex}, '${choice.key}')"
-                    class="w-5 h-5 text-primary-500">
-                  <span class="text-lg"><strong class="mr-2">${displayPrefix}.</strong> ${choice.text}</span>
-                </label>
-              `}).join('')}
+                  <label class="flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition
+                    ${isSelected ? 'border-primary-500 bg-primary-50' : 'border-gray-200 hover:border-primary-300'}">
+                    <input type="radio" name="mc-answer" value="${choice.key}" 
+                      ${isSelected ? 'checked' : ''}
+                      onchange="selectMCAnswer(${q.originalIndex}, '${choice.key}')"
+                      class="w-5 h-5 text-primary-500">
+                    <span class="text-lg"><strong class="mr-2 text-primary-600">${thaiLabel}.</strong> ${choice.text}</span>
+                  </label>
+                `;
+              }).join('')}
             </div>
           </div>
         `;
@@ -2610,7 +2604,15 @@ Score: 1</pre>
       const isLast = currentQuestionIndex === totalQuestions - 1;
       const nextBtn = document.getElementById('next-btn');
       if (nextBtn) {
-        nextBtn.innerHTML = isLast ? '<i class="fas fa-flag-checkered"></i> สิ้นสุด' : 'ข้อถัดไป <i class="fas fa-chevron-right"></i>';
+        if (isLast) {
+          nextBtn.innerHTML = '<i class="fas fa-flag-checkered"></i> สิ้นสุด';
+          nextBtn.disabled = true;
+          nextBtn.className = 'bg-gray-300 text-gray-500 cursor-not-allowed font-bold py-3 px-6 rounded-xl flex items-center gap-2 transition opacity-60';
+        } else {
+          nextBtn.innerHTML = 'ข้อถัดไป <i class="fas fa-chevron-right"></i>';
+          nextBtn.disabled = false;
+          nextBtn.className = 'bg-primary-500 hover:bg-primary-600 text-white font-bold py-3 px-6 rounded-xl flex items-center gap-2 transition';
+        }
       }
       document.getElementById('submit-container').classList.toggle('hidden', !isLast);
     }
@@ -2637,8 +2639,6 @@ Score: 1</pre>
       if (currentQuestionIndex < totalQuestions - 1) {
         currentQuestionIndex++;
         renderQuestion();
-      } else {
-        submitExam();
       }
     }
 
@@ -2658,17 +2658,17 @@ Score: 1</pre>
       `;
       document.body.appendChild(loadingOverlay);
 
-      const questions = currentExam.parsedQuestions;
+      const rawQuestions = typeof currentExam.questions === 'string' ? JSON.parse(currentExam.questions) : currentExam.questions;
       let mcScore = 0;
 
-      questions.mc.forEach((q) => {
-        const studentAns = studentAnswers.mc[q.originalIndex];
+      rawQuestions.mc.forEach((q, idx) => {
+        const studentAns = studentAnswers.mc[idx];
         if (studentAns === q.answer) {
           mcScore += (q.score || currentExam.score_per_question || 1);
         }
       });
 
-      const hasEssay = questions.essay.length > 0;
+      const hasEssay = rawQuestions.essay && rawQuestions.essay.length > 0;
       
       const examResult = {
         id: generateId(),
@@ -2739,7 +2739,7 @@ Score: 1</pre>
         `;
 
         if (currentExam.show_answer && warningCount < 4) {
-          displayAnswerReview(examResult, questions);
+          displayAnswerReview(examResult, rawQuestions);
         }
 
         showPage('result');
@@ -2758,7 +2758,7 @@ Score: 1</pre>
       document.getElementById('student-form').reset();
     }
 
-    // Exam Protection (ป้องกันคลิกขวา, คัดลอก, วาง, สลับแท็บ)
+    // Exam Protection
     function setupExamProtection() {
       document.addEventListener('contextmenu', preventAction, true);
       document.addEventListener('copy', preventAction, true);
@@ -2807,7 +2807,7 @@ Score: 1</pre>
       showModal('warning-modal');
     }
 
-    // Answer Review Functions
+    // Answer Review Functions (แสดงทั้งปรนัยและอัตนัย)
     function displayAnswerReview(examResult, questions) {
       const container = document.getElementById('answer-review-container');
       const blockedDiv = document.getElementById('answer-review-blocked');
@@ -2829,13 +2829,22 @@ Score: 1</pre>
 
       let reviewHTML = '';
       
-      if (questions.mc) {
+      // 1. เฉลยปรนัย
+      if (questions.mc && questions.mc.length > 0) {
+        reviewHTML += '<h4 class="font-bold text-gray-800 mb-3 border-b pb-1">ตอนที่ 1: ข้อสอบปรนัย</h4>';
         questions.mc.forEach((q, i) => {
-          const userAnswer = answers.mc ? answers.mc[q.originalIndex] : null;
+          const userAnswer = answers.mc ? answers.mc[i] : null;
           const correctAnswer = q.answer;
           const isCorrect = userAnswer === correctAnswer;
+
+          let chosenChoiceText = 'ไม่ได้ตอบ';
+          if (userAnswer && q.choices) {
+            const foundChoice = q.choices.find(c => c.key === userAnswer);
+            if (foundChoice) chosenChoiceText = `${foundChoice.key}. ${foundChoice.text}`;
+          }
+
           reviewHTML += `
-            <div class="border-2 ${isCorrect ? 'border-green-300 bg-green-50' : 'border-red-300 bg-red-50'} rounded-lg p-3">
+            <div class="border-2 ${isCorrect ? 'border-green-300 bg-green-50' : 'border-red-300 bg-red-50'} rounded-lg p-3 mb-3">
               <div class="flex items-start justify-between mb-2">
                 <p class="font-bold text-gray-800 flex-1"><span class="badge ${isCorrect ? 'badge-success' : 'badge-danger'}">ข้อที่ ${i + 1}</span> ${q.question}</p>
                 <span class="text-xs font-bold ${isCorrect ? 'text-green-600' : 'text-red-600'}">
@@ -2847,10 +2856,29 @@ Score: 1</pre>
                 ${q.choices.map(c => `
                   <div class="${c.key === correctAnswer ? 'font-bold text-green-700 bg-green-100 -ml-4 pl-4 py-1 rounded' : c.key === userAnswer ? 'font-bold text-red-700 bg-red-100 -ml-4 pl-4 py-1 rounded' : 'text-gray-700'}">
                     <span class="font-semibold">${c.key}.</span> ${c.text}
+                    ${c.key === correctAnswer ? '<i class="fas fa-check-circle text-green-600 ml-1"></i> (เฉลย)' : ''}
                   </div>
                 `).join('')}
               </div>
-              ${userAnswer ? `<p class="text-xs text-gray-600 mt-2">คำตอบของคุณ: <strong>${userAnswer}</strong></p>` : '<p class="text-xs text-gray-500 mt-2"><em>ไม่ได้ตอบ</em></p>'}
+              <p class="text-xs text-gray-600 mt-2">คำตอบของคุณ: <strong class="${isCorrect ? 'text-green-600' : 'text-red-600'}">${chosenChoiceText}</strong></p>
+            </div>
+          `;
+        });
+      }
+
+      // 2. เฉลยอัตนัย
+      if (questions.essay && questions.essay.length > 0) {
+        reviewHTML += '<h4 class="font-bold text-gray-800 mt-4 mb-3 border-b pb-1">ตอนที่ 2: ข้อสอบอัตนัย</h4>';
+        questions.essay.forEach((q, i) => {
+          const userEssayAns = answers.essay ? answers.essay[i] : 'ไม่ได้ตอบ';
+          reviewHTML += `
+            <div class="border-2 border-orange-300 bg-orange-50 rounded-lg p-3 mb-3">
+              <p class="font-bold text-gray-800 mb-2"><span class="badge badge-warning">ข้อที่ ${questions.mc ? questions.mc.length + i + 1 : i + 1}</span> ${q.question}</p>
+              ${q.image ? `<img src="${q.image}" class="my-2 max-h-40 rounded border object-contain">` : ''}
+              <div class="bg-white rounded border border-orange-200 p-2 text-sm text-gray-800 min-h-12 whitespace-pre-wrap">
+                ${userEssayAns}
+              </div>
+              <p class="text-xs text-orange-600 mt-2"><i class="fas fa-clock mr-1"></i>รอตรวจคะแนนจากครู (คะแนนเต็ม: ${q.maxScore || 5} คะแนน)</p>
             </div>
           `;
         });
