@@ -411,20 +411,28 @@
         <h3 class="text-xl font-bold text-gray-800 mb-6">สร้างข้อสอบใหม่</h3>
         <form id="create-exam-form" class="space-y-6">
          <input type="hidden" id="edit-exam-id" value="">
-         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+         <div>
+          <label class="block text-gray-700 font-medium mb-2">ชื่อรายวิชา</label>
+          <input type="text" id="exam-subject-name" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none" placeholder="กรอกชื่อรายวิชา">
+         </div>
+         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-           <label class="block text-gray-700 font-medium mb-2">ชื่อรายวิชา</label> <input type="text" id="exam-subject-name" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none" placeholder="กรอกชื่อรายวิชา">
+           <label class="block text-gray-700 font-medium mb-2">คะแนนเต็ม</label>
+           <input type="number" id="exam-total-score" required min="1" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none" placeholder="เช่น 100">
           </div>
           <div>
-           <label class="block text-gray-700 font-medium mb-2">คะแนนเต็ม</label> <input type="number" id="exam-total-score" required min="1" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none" placeholder="คะแนนเต็ม">
+           <label class="block text-gray-700 font-medium mb-2"><i class="fas fa-check-circle text-green-500 mr-1"></i>คะแนนที่ผ่านเกณฑ์</label>
+           <input type="number" id="exam-passing-score" required min="0" step="0.5" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none border-green-300 bg-green-50/30" placeholder="เช่น 50">
+          </div>
+          <div>
+           <label class="block text-gray-700 font-medium mb-2">เวลาทำข้อสอบ (นาที)</label>
+           <input type="number" id="exam-time-limit" required min="1" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none" placeholder="เช่น 60">
           </div>
          </div>
          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-           <label class="block text-gray-700 font-medium mb-2">เวลาทำข้อสอบ (นาที)</label> <input type="number" id="exam-time-limit" required min="1" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none" placeholder="เช่น 60">
-          </div>
-          <div>
-           <label class="block text-gray-700 font-medium mb-2">คะแนนต่อข้อ</label> <input type="number" id="exam-score-per-question" required min="0.5" step="0.5" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none" placeholder="เช่น 1">
+           <label class="block text-gray-700 font-medium mb-2">คะแนนต่อข้อ (ปรนัย)</label>
+           <input type="number" id="exam-score-per-question" required min="0.5" step="0.5" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none" placeholder="เช่น 1">
           </div>
          </div>
          <div class="flex flex-wrap gap-4">
@@ -509,7 +517,7 @@ Score: 1</pre>
             <th class="px-4 py-3 text-left text-sm font-medium text-gray-600">#</th>
             <th class="px-4 py-3 text-left text-sm font-medium text-gray-600">รายวิชา</th>
             <th class="px-4 py-3 text-left text-sm font-medium text-gray-600">จำนวนข้อ</th>
-            <th class="px-4 py-3 text-left text-sm font-medium text-gray-600">คะแนน</th>
+            <th class="px-4 py-3 text-left text-sm font-medium text-gray-600">คะแนนเต็ม/ผ่าน</th>
             <th class="px-4 py-3 text-left text-sm font-medium text-gray-600">เวลา</th>
             <th class="px-4 py-3 text-left text-sm font-medium text-gray-600">สถานะ</th>
             <th class="px-4 py-3 text-center text-sm font-medium text-gray-600">จัดการ</th>
@@ -1234,12 +1242,13 @@ Score: 1</pre>
       tbody.innerHTML = exams.map((e, i) => {
         const questions = e.questions ? (typeof e.questions === 'string' ? JSON.parse(e.questions) : e.questions) : { mc: [], essay: [] };
         const totalQuestions = (questions.mc?.length || 0) + (questions.essay?.length || 0);
+        const passText = e.passing_score !== undefined && e.passing_score !== null ? e.passing_score : '-';
         return `
           <tr class="hover:bg-gray-50">
             <td class="px-4 py-3 text-sm">${i + 1}</td>
             <td class="px-4 py-3 text-sm font-medium">${e.subject_name}</td>
             <td class="px-4 py-3 text-sm">${totalQuestions} ข้อ</td>
-            <td class="px-4 py-3 text-sm">${e.total_score} คะแนน</td>
+            <td class="px-4 py-3 text-sm">${e.total_score} / <span class="text-green-600 font-bold">${passText}</span> คะแนน</td>
             <td class="px-4 py-3 text-sm">${e.time_limit} นาที</td>
             <td class="px-4 py-3">
               <span class="badge ${e.is_visible ? 'badge-success' : 'badge-danger'}">
@@ -2075,7 +2084,9 @@ Score: 1</pre>
 
       setTimeout(async () => {
         const editExamId = document.getElementById('edit-exam-id').value;
-        
+        const totalScore = parseInt(document.getElementById('exam-total-score').value) || 0;
+        const passingScore = parseFloat(document.getElementById('exam-passing-score').value) || 0;
+
         if (editExamId) {
           const exam = appData.find(d => d.__backendId === editExamId);
           if (!exam) {
@@ -2088,7 +2099,8 @@ Score: 1</pre>
           const updatedExam = {
             ...exam,
             subject_name: document.getElementById('exam-subject-name').value,
-            total_score: parseInt(document.getElementById('exam-total-score').value),
+            total_score: totalScore,
+            passing_score: passingScore,
             time_limit: parseInt(document.getElementById('exam-time-limit').value),
             score_per_question: parseFloat(document.getElementById('exam-score-per-question').value),
             is_visible: document.getElementById('exam-visible').checked,
@@ -2119,7 +2131,8 @@ Score: 1</pre>
             type: 'exam',
             member_id: currentUser.__backendId,
             subject_name: document.getElementById('exam-subject-name').value,
-            total_score: parseInt(document.getElementById('exam-total-score').value),
+            total_score: totalScore,
+            passing_score: passingScore,
             time_limit: parseInt(document.getElementById('exam-time-limit').value),
             score_per_question: parseFloat(document.getElementById('exam-score-per-question').value),
             is_visible: document.getElementById('exam-visible').checked,
@@ -2152,6 +2165,7 @@ Score: 1</pre>
 
       document.getElementById('exam-subject-name').value = exam.subject_name;
       document.getElementById('exam-total-score').value = exam.total_score;
+      document.getElementById('exam-passing-score').value = exam.passing_score !== undefined && exam.passing_score !== null ? exam.passing_score : Math.ceil((exam.total_score || 0) * 0.5);
       document.getElementById('exam-time-limit').value = exam.time_limit;
       document.getElementById('exam-score-per-question').value = exam.score_per_question;
       document.getElementById('exam-visible').checked = exam.is_visible;
@@ -2367,7 +2381,7 @@ Score: 1</pre>
         case 'exams':
           data = getExams();
           filename = 'ข้อสอบ';
-          headers = ['ลำดับ', 'รายวิชา', 'จำนวนข้อ', 'คะแนนเต็ม', 'เวลา(นาที)', 'สถานะ'];
+          headers = ['ลำดับ', 'รายวิชา', 'จำนวนข้อ', 'คะแนนเต็ม', 'คะแนนผ่านเกณฑ์', 'เวลา(นาที)', 'สถานะ'];
           break;
         case 'students':
           data = getStudents();
@@ -2396,7 +2410,7 @@ Score: 1</pre>
           case 'exams':
             const questions = item.questions ? (typeof item.questions === 'string' ? JSON.parse(item.questions) : item.questions) : { mc: [], essay: [] };
             const totalQuestions = (questions.mc?.length || 0) + (questions.essay?.length || 0);
-            row = [index + 1, item.subject_name, totalQuestions, item.total_score, item.time_limit, item.is_visible ? 'เปิด' : 'ปิด'];
+            row = [index + 1, item.subject_name, totalQuestions, item.total_score, item.passing_score !== undefined ? item.passing_score : '-', item.time_limit, item.is_visible ? 'เปิด' : 'ปิด'];
             break;
           case 'students':
             row = [index + 1, item.student_id, item.fullname, item.class_name, item.room, item.number, item.subject_name];
@@ -2697,7 +2711,11 @@ Score: 1</pre>
       }
 
       if (result.isOk) {
-        const percentage = (examResult.score / examResult.total_score) * 100;
+        const passingScore = currentExam.passing_score !== undefined && currentExam.passing_score !== null && !isNaN(currentExam.passing_score) 
+          ? parseFloat(currentExam.passing_score) 
+          : Math.ceil(currentExam.total_score * 0.5);
+
+        const isPassed = examResult.score >= passingScore;
         const resultIcon = document.getElementById('result-icon');
         const resultTitle = document.getElementById('result-title');
         const resultMessage = document.getElementById('result-message');
@@ -2708,24 +2726,18 @@ Score: 1</pre>
           resultTitle.textContent = 'ยุติการสอบ';
           resultTitle.className = 'text-3xl font-bold mb-2 text-red-600';
           resultMessage.textContent = 'ตรวจพบการทุจริตระหว่างการสอบ';
-        } else if (percentage >= 80) {
+        } else if (isPassed) {
           resultIcon.className = 'w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6';
           resultIcon.innerHTML = '<i class="fas fa-trophy text-5xl text-green-500"></i>';
-          resultTitle.textContent = 'ยอดเยี่ยม!';
+          resultTitle.textContent = 'สอบผ่านเกณฑ์!';
           resultTitle.className = 'text-3xl font-bold mb-2 text-green-600';
-          resultMessage.textContent = 'คุณทำได้ดีมาก!';
-        } else if (percentage >= 50) {
-          resultIcon.className = 'w-24 h-24 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-6';
-          resultIcon.innerHTML = '<i class="fas fa-star text-5xl text-yellow-500"></i>';
-          resultTitle.textContent = 'ผ่าน';
-          resultTitle.className = 'text-3xl font-bold mb-2 text-yellow-600';
-          resultMessage.textContent = 'พยายามต่อไปนะ!';
+          resultMessage.textContent = `ยินดีด้วย! คุณสอบผ่านเกณฑ์ (${passingScore} คะแนนขึ้นไป)`;
         } else {
           resultIcon.className = 'w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6';
           resultIcon.innerHTML = '<i class="fas fa-book-reader text-5xl text-red-500"></i>';
-          resultTitle.textContent = 'ลองใหม่อีกครั้ง';
+          resultTitle.textContent = 'ไม่ผ่านเกณฑ์';
           resultTitle.className = 'text-3xl font-bold mb-2 text-red-600';
-          resultMessage.textContent = 'อ่านทบทวนเพิ่มเติมนะ';
+          resultMessage.textContent = `คุณยังไม่ผ่านเกณฑ์ (${passingScore} คะแนน) พยายามต่อไปนะ`;
         }
 
         document.getElementById('result-score').textContent = warningCount >= 4 ? '-' : (hasEssay ? `${mcScore} (รอตรวจอัตนัย)` : examResult.score);
@@ -2735,6 +2747,7 @@ Score: 1</pre>
           <p><strong>ชื่อ-สกุล:</strong> ${examResult.fullname}</p>
           <p><strong>ชั้น/ห้อง:</strong> ${examResult.class_name}/${examResult.room}</p>
           <p><strong>รายวิชา:</strong> ${examResult.subject_name}</p>
+          <p><strong>เกณฑ์ผ่าน:</strong> ${passingScore} / ${examResult.total_score} คะแนน</p>
           <p><strong>เวลาส่ง:</strong> ${new Date(examResult.submitted_at).toLocaleString('th-TH')}</p>
         `;
 
@@ -2807,7 +2820,7 @@ Score: 1</pre>
       showModal('warning-modal');
     }
 
-    // Answer Review Functions (แสดงทั้งปรนัยและอัตนัย)
+    // Answer Review Functions
     function displayAnswerReview(examResult, questions) {
       const container = document.getElementById('answer-review-container');
       const blockedDiv = document.getElementById('answer-review-blocked');
@@ -2829,7 +2842,6 @@ Score: 1</pre>
 
       let reviewHTML = '';
       
-      // 1. เฉลยปรนัย
       if (questions.mc && questions.mc.length > 0) {
         reviewHTML += '<h4 class="font-bold text-gray-800 mb-3 border-b pb-1">ตอนที่ 1: ข้อสอบปรนัย</h4>';
         questions.mc.forEach((q, i) => {
@@ -2866,7 +2878,6 @@ Score: 1</pre>
         });
       }
 
-      // 2. เฉลยอัตนัย
       if (questions.essay && questions.essay.length > 0) {
         reviewHTML += '<h4 class="font-bold text-gray-800 mt-4 mb-3 border-b pb-1">ตอนที่ 2: ข้อสอบอัตนัย</h4>';
         questions.essay.forEach((q, i) => {
