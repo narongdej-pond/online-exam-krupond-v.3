@@ -554,6 +554,37 @@ Score: 1</pre>
         </div>
        </div>
       </div>
+      <!-- Results -->
+      <div id="admin-results" class="admin-content hidden">
+       <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+        <div class="flex gap-2">
+         <select id="results-filter-subject" onchange="filterResultsTable()" class="px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-primary-500 focus:outline-none text-sm"> <option value="">ทั้งหมด</option> </select> <button onclick="exportData('results', 'csv')" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition" title="ส่งออก CSV"> <i class="fas fa-file-csv"></i> CSV </button>
+        </div>
+       </div>
+       <div class="bg-white rounded-xl card-shadow overflow-hidden">
+        <div class="table-container">
+         <table class="w-full">
+          <thead class="bg-gray-50">
+           <tr>
+            <th class="px-4 py-3 text-left text-sm font-medium text-gray-600">#</th>
+            <th class="px-4 py-3 text-left text-sm font-medium text-gray-600">นักเรียน</th>
+            <th class="px-4 py-3 text-left text-sm font-medium text-gray-600">รายวิชา</th>
+            <th class="px-4 py-3 text-left text-sm font-medium text-gray-600">คะแนน</th>
+            <th class="px-4 py-3 text-left text-sm font-medium text-gray-600">ประวัติคำตอบ</th>
+            <th class="px-4 py-3 text-left text-sm font-medium text-gray-600">เวลาส่ง</th>
+            <th class="px-4 py-3 text-left text-sm font-medium text-gray-600">สถานะ</th>
+            <th class="px-4 py-3 text-center text-sm font-medium text-gray-600">จัดการ</th>
+           </tr>
+          </thead>
+          <tbody id="results-table" class="divide-y divide-gray-100">
+           <tr>
+            <td colspan="8" class="px-4 py-8 text-center text-gray-500">ไม่พบข้อมูล</td>
+           </tr>
+          </tbody>
+         </table>
+        </div>
+       </div>
+      </div>
       <!-- Essay Grading -->
       <div id="admin-grading" class="admin-content hidden">
        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
@@ -1309,6 +1340,491 @@ Score: 1</pre>
       });
     }
 
+    function updateResultsTable() {
+      const tbody = document.getElementById('results-table');
+      const filterSelect = document.getElementById('results-filter-subject');
+      const results = getResults();
+      
+      const subjects = [...new Set(results.map(r => r.subject_name))].sort();
+      const currentValue = filterSelect.value;
+      filterSelect.innerHTML = '<option value="">ทั้งหมด</option>';
+      subjects.forEach(subject => {
+        filterSelect.innerHTML += `<option value="${subject}">${subject}</option>`;
+      });
+      filterSelect.value = currentValue;
+      
+      filterResultsTable();
+    }
+
+    function filterResultsTable() {
+      const tbody = document.getElementById('results-table');
+      const filterValue = document.getElementById('results-filter-subject').value;
+      const results = getResults();
+      
+      const filtered = filterValue ? results.filter(r => r.subject_name === filterValue) : results;
+      
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="px-4 py-8 text-center text-gray-500">ไม่พบข้อมูล</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = filtered.map((r, i) => `
+        <tr class="hover:bg-gray-50">
+          <td class="px-4 py-3 text-sm">${i + 1}</td>
+          <td class="px-4 py-3 text-sm font-medium">${r.student_id} - ${r.fullname}</td>
+          <td class="px-4 py-3 text-sm">${r.subject_name}</td>
+          <td class="px-4 py-3 text-sm font-bold text-primary-600">${r.score}/${r.total_score}</td>
+          <td class="px-4 py-3 text-sm">
+            <button onclick="viewStudentAnswers('${r.__backendId}')" class="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 rounded-lg text-xs font-medium transition">
+              <i class="fas fa-eye mr-1"></i> ดูคำตอบ
+            </button>
+          </td>
+          <td class="px-4 py-3 text-sm">${new Date(r.submitted_at).toLocaleString('th-TH')}</td>
+          <td class="px-4 py-3">
+            <span class="badge ${r.graded ? 'badge-success' : 'badge-warning'}">
+              ${r.graded ? 'ตรวจแล้ว' : 'รอตรวจ'}
+            </span>
+          </td>
+          <td class="px-4 py-3 text-center">
+            <button onclick="deleteResult('${r.__backendId}')" class="text-red-500 hover:text-red-600 mx-1">
+              <i class="fas fa-trash"></i>
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // ฟังก์ชันดูประวัติคำตอบของนักเรียนในหน้าผลสอบ (สำหรับครู/แอดมิน)
+    function viewStudentAnswers(backendId) {
+      const result = appData.find(d => d.__backendId === backendId && d.type === 'result');
+      if (!result) return;
+
+      const exam = getExams().find(e => e.id === result.subject_id);
+      if (!exam) {
+        showAlert('warning', 'ไม่พบข้อมูล', 'ไม่พบรายวิชาของข้อสอบนี้');
+        return;
+      }
+
+      const questions = typeof exam.questions === 'string' ? JSON.parse(exam.questions) : exam.questions;
+      const answers = typeof result.answers === 'string' ? JSON.parse(result.answers) : result.answers;
+
+      document.getElementById('student-review-title').textContent = `ประวัติคำตอบ: ${result.student_id} ${result.fullname} (${result.subject_name})`;
+      
+      let html = '';
+      if (questions.mc && questions.mc.length > 0) {
+        html += '<h4 class="font-bold text-gray-800 mb-2">ตอนที่ 1: ข้อสอบปรนัย</h4>';
+        questions.mc.forEach((q, idx) => {
+          const studentAns = answers.mc ? answers.mc[idx] : null;
+          const isCorrect = studentAns === q.answer;
+          
+          // ค้นหาข้อความของตัวเลือกที่นักเรียนเลือก
+          let chosenChoiceText = 'ไม่ได้ตอบ';
+          if (studentAns && q.choices) {
+            const foundChoice = q.choices.find(c => c.key === studentAns);
+            if (foundChoice) {
+              chosenChoiceText = `${foundChoice.key}. ${foundChoice.text}`;
+            } else {
+              chosenChoiceText = studentAns;
+            }
+          }
+
+          let correctChoiceText = '';
+          if (q.choices) {
+            const foundCorrect = q.choices.find(c => c.key === q.answer);
+            if (foundCorrect) {
+              correctChoiceText = `${foundCorrect.key}. ${foundCorrect.text}`;
+            } else {
+              correctChoiceText = q.answer;
+            }
+          }
+
+          html += `
+            <div class="border rounded-lg p-3 mb-3 ${isCorrect ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}">
+              <p class="font-semibold text-gray-800">ข้อที่ ${idx + 1}: ${q.question}</p>
+              ${q.image ? `<img src="${q.image}" class="my-2 max-h-40 rounded border object-contain">` : ''}
+              <div class="mt-2 text-sm">
+                <p>นักเรียนตอบ: <strong class="${isCorrect ? 'text-green-600' : 'text-red-600'}">${chosenChoiceText}</strong> ${isCorrect ? '<i class="fas fa-check text-green-500 ml-1"></i>' : '<i class="fas fa-times text-red-500 ml-1"></i>'}</p>
+                <p class="text-gray-600">เฉลยที่ถูกต้อง: <strong class="text-green-700">${correctChoiceText}</strong></p>
+              </div>
+            </div>
+          `;
+        });
+      }
+
+      if (questions.essay && questions.essay.length > 0) {
+        html += '<h4 class="font-bold text-gray-800 mt-4 mb-2">ตอนที่ 2: ข้อสอบอัตนัย</h4>';
+        questions.essay.forEach((q, idx) => {
+          const studentEssayAns = answers.essay ? answers.essay[idx] : 'ไม่ได้ตอบ';
+          html += `
+            <div class="border rounded-lg p-3 mb-3 bg-orange-50 border-orange-200">
+              <p class="font-semibold text-gray-800">ข้อที่ ${idx + 1}: ${q.question}</p>
+              ${q.image ? `<img src="${q.image}" class="my-2 max-h-40 rounded border object-contain">` : ''}
+              <div class="mt-2 text-sm bg-white p-3 rounded border border-orange-100">
+                <p class="text-gray-500 text-xs mb-1">คำตอบของนักเรียน:</p>
+                <p class="text-gray-800 whitespace-pre-wrap">${studentEssayAns}</p>
+              </div>
+            </div>
+          `;
+        });
+      }
+
+      document.getElementById('student-review-content').innerHTML = html;
+      showModal('student-answer-review-modal');
+    }
+
+    function updateGradingTable() {
+      const tbody = document.getElementById('grading-table');
+      const filterSelect = document.getElementById('grading-filter-subject');
+      const results = getResults().filter(r => !r.graded && !r.cheating_detected);
+      
+      const subjects = [...new Set(results.map(r => r.subject_name))].sort();
+      const currentValue = filterSelect.value;
+      filterSelect.innerHTML = '<option value="">ทั้งหมด</option>';
+      subjects.forEach(subject => {
+        filterSelect.innerHTML += `<option value="${subject}">${subject}</option>`;
+      });
+      filterSelect.value = currentValue;
+      
+      filterGradingTable();
+    }
+
+    function filterGradingTable() {
+      const tbody = document.getElementById('grading-table');
+      const filterValue = document.getElementById('grading-filter-subject').value;
+      const results = getResults().filter(r => !r.graded && !r.cheating_detected);
+      
+      const filtered = filterValue ? results.filter(r => r.subject_name === filterValue) : results;
+      
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-gray-500">ไม่พบข้อมูลที่ต้องตรวจ</td></tr>';
+        return;
+      }
+      tbody.innerHTML = filtered.map((r, i) => `
+        <tr class="hover:bg-gray-50">
+          <td class="px-4 py-3 text-sm">${i + 1}</td>
+          <td class="px-4 py-3 text-sm font-medium">${r.student_id} - ${r.fullname}</td>
+          <td class="px-4 py-3 text-sm">${r.subject_name}</td>
+          <td class="px-4 py-3">
+            <span class="badge badge-warning">รอตรวจ</span>
+          </td>
+          <td class="px-4 py-3 text-center">
+            <button onclick="openGrading('${r.__backendId}')" class="bg-primary-500 hover:bg-primary-600 text-white px-3 py-1 rounded-lg text-sm">
+              <i class="fas fa-pen mr-1"></i> ตรวจ
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function updateTimeSettings() {
+      const container = document.getElementById('time-settings-list');
+      const exams = getExams();
+      if (exams.length === 0) {
+        container.innerHTML = '<p class="text-gray-500 text-center py-4">ไม่พบข้อสอบที่ต้องตั้งค่า</p>';
+        return;
+      }
+      container.innerHTML = exams.map(e => `
+        <div class="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+          <div>
+            <p class="font-medium text-gray-800">${e.subject_name}</p>
+            <p class="text-sm text-gray-500">เวลาปัจจุบัน: ${e.time_limit} นาที</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <input type="number" id="time-${e.__backendId}" value="${e.time_limit}" min="1"
+              class="w-20 px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-primary-500 focus:outline-none text-center">
+            <span class="text-gray-500">นาที</span>
+            <button onclick="updateExamTime('${e.__backendId}')" class="bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded-lg transition">
+              <i class="fas fa-save"></i>
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Admin Functions
+    function showAdminPage(page) {
+      document.querySelectorAll('.admin-content').forEach(c => c.classList.add('hidden'));
+      document.getElementById(`admin-${page}`).classList.remove('hidden');
+      
+      document.querySelectorAll('.sidebar-item').forEach(item => {
+        item.classList.remove('active');
+        if (item.dataset.page === page) item.classList.add('active');
+      });
+
+      const titles = {
+        'dashboard': 'แดชบอร์ด',
+        'members': 'จัดการสมาชิก',
+        'create-exam': 'สร้างข้อสอบ',
+        'exams': 'จัดการข้อสอบ',
+        'students': 'ข้อมูลผู้สอบ',
+        'results': 'ผลสอบ',
+        'grading': 'ตรวจอัตนัย',
+        'settings': 'ตั้งค่าเวลา',
+        'profile': 'แก้ไขข้อมูลส่วนตัว'
+      };
+      document.getElementById('admin-page-title').textContent = titles[page] || 'แดชบอร์ด';
+    }
+
+    function toggleSidebar() {
+      const sidebar = document.getElementById('admin-sidebar');
+      const isCollapsed = sidebar.style.marginLeft === '-256px';
+      sidebar.style.marginLeft = isCollapsed ? '0' : '-256px';
+    }
+
+    async function refreshData() {
+        try {
+            document.getElementById('loading').classList.remove('hidden');
+            const data = await window.dataSdk._callAPI('getData');
+            appData = data || [];
+            updateUI();
+            document.getElementById('loading').classList.add('hidden');
+            showAlert('info', 'รีเฟรชข้อมูล', 'ข้อมูลได้รับการอัปเดตแล้ว');
+        } catch (err) {
+            document.getElementById('loading').classList.add('hidden');
+            showAlert('error', 'ผิดพลาด', 'ไม่สามารถรีเฟรชข้อมูลได้');
+        }
+    }
+
+    // Auth Functions
+    document.getElementById('admin-login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = e.target.querySelector('button[type="submit"]');
+      const originalHTML = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner spin mr-2"></i> กำลังเข้าสู่ระบบ...';
+
+      setTimeout(() => {
+        const username = document.getElementById('admin-username').value;
+        const password = document.getElementById('admin-password').value;
+
+        const member = getMembers().find(m => m.username === username && m.password === password);
+        if (member) {
+          if (member.status !== 'active') {
+            btn.disabled = false;
+            btn.innerHTML = originalHTML;
+            showAlert('warning', 'รออนุมัติ', 'บัญชีของคุณยังรออนุมัติจากผู้ดูแลระบบ');
+            return;
+          }
+          currentUser = member;
+          document.getElementById('admin-name').textContent = member.fullname;
+          document.getElementById('admin-role').textContent = member.role === 'admin' ? 'ผู้ดูแลหลัก' : 'ครู';
+          document.getElementById('profile-fullname').value = member.fullname;
+          document.getElementById('profile-email').value = member.email;
+          btn.disabled = false;
+          btn.innerHTML = originalHTML;
+          hideModal('admin-login-modal');
+          showPage('admin');
+          showAdminPage('dashboard');
+          updateUI();
+        } else {
+          btn.disabled = false;
+          btn.innerHTML = originalHTML;
+          showAlert('error', 'เข้าสู่ระบบไม่สำเร็จ', 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
+        }
+      }, 300);
+    });
+
+    document.getElementById('admin-register-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = e.target.querySelector('button[type="submit"]');
+      const originalHTML = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner spin mr-2"></i> กำลังสมัครสมาชิก...';
+
+      setTimeout(async () => {
+        const members = getMembers();
+        
+        if (members.length >= 999) {
+          btn.disabled = false;
+          btn.innerHTML = originalHTML;
+          showAlert('warning', 'ถึงขีดจำกัด', 'ไม่สามารถเพิ่มสมาชิกได้อีก');
+          return;
+        }
+
+        const username = document.getElementById('reg-username').value;
+        if (members.find(m => m.username === username)) {
+          btn.disabled = false;
+          btn.innerHTML = originalHTML;
+          showAlert('error', 'ผิดพลาด', 'ชื่อผู้ใช้นี้มีอยู่แล้ว');
+          return;
+        }
+
+        const isFirstMember = members.length === 0;
+        const newMember = {
+          id: generateId(),
+          type: 'member',
+          username: username,
+          password: document.getElementById('reg-password').value,
+          fullname: document.getElementById('reg-fullname').value,
+          email: document.getElementById('reg-email').value,
+          role: isFirstMember ? 'admin' : 'teacher',
+          status: isFirstMember ? 'active' : 'pending',
+          created_at: new Date().toISOString()
+        };
+
+        const result = await window.dataSdk.create(newMember);
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
+        
+        if (result.isOk) {
+          hideModal('admin-register-modal');
+          if (isFirstMember) {
+            showAlert('success', 'สมัครสำเร็จ', 'คุณเป็นผู้ดูแลระบบหลัก สามารถเข้าสู่ระบบได้เลย');
+          } else {
+            showAlert('success', 'สมัครสำเร็จ', 'กรุณารอการอนุมัติจากผู้ดูแลระบบ');
+          }
+          showModal('admin-login-modal');
+        } else {
+          showAlert('error', 'ผิดพลาด', 'ไม่สามารถสมัครสมาชิกได้');
+        }
+      }, 300);
+    });
+
+    function adminLogout() {
+      currentUser = null;
+      if (examTimer) clearInterval(examTimer);
+      showPage('home');
+    }
+
+    // Member Management
+    document.getElementById('add-member-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = e.target.querySelector('button[type="submit"]');
+      const originalHTML = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner spin mr-2"></i> กำลังเพิ่มสมาชิก...';
+
+      setTimeout(async () => {
+        const members = getMembers();
+        const mainAdmin = members.find(m => m.role === 'admin');
+        
+        if (!currentUser || !mainAdmin || currentUser.__backendId !== mainAdmin.__backendId) {
+          btn.disabled = false;
+          btn.innerHTML = originalHTML;
+          showAlert('error', 'ไม่มีสิทธิ์', 'เฉพาะผู้ดูแลระบบหลักเท่านั้นที่สามารถเพิ่มสมาชิกได้');
+          hideModal('add-member-modal');
+          return;
+        }
+
+        const username = document.getElementById('member-username').value;
+        if (members.find(m => m.username === username)) {
+          btn.disabled = false;
+          btn.innerHTML = originalHTML;
+          showAlert('error', 'ผิดพลาด', 'ชื่อผู้ใช้นี้มีอยู่แล้ว');
+          return;
+        }
+
+        const newMember = {
+          id: generateId(),
+          type: 'member',
+          username: username,
+          password: document.getElementById('member-password').value,
+          fullname: document.getElementById('member-fullname').value,
+          email: document.getElementById('member-email').value,
+          role: document.getElementById('member-role').value,
+          status: 'active',
+          created_at: new Date().toISOString()
+        };
+
+        const result = await window.dataSdk.create(newMember);
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
+        
+        if (result.isOk) {
+          hideModal('add-member-modal');
+          showAlert('success', 'สำเร็จ', 'เพิ่มสมาชิกเรียบร้อยแล้ว');
+          e.target.reset();
+        } else {
+          showAlert('error', 'ผิดพลาด', 'ไม่สามารถเพิ่มสมาชิกได้');
+        }
+      }, 300);
+    });
+
+    function editMember(backendId) {
+      const member = appData.find(d => d.__backendId === backendId);
+      if (!member) return;
+
+      const mainAdmin = getMembers().find(m => m.role === 'admin');
+      if (!currentUser || currentUser.__backendId !== mainAdmin?.__backendId) {
+        showAlert('error', 'ไม่มีสิทธิ์', 'เฉพาะผู้ดูแลระบบหลักเท่านั้นที่สามารถแก้ไขสมาชิก');
+        return;
+      }
+
+      document.getElementById('edit-member-id').value = backendId;
+      document.getElementById('edit-member-username').value = member.username;
+      document.getElementById('edit-member-fullname').value = member.fullname;
+      document.getElementById('edit-member-email').value = member.email;
+      document.getElementById('edit-member-status').value = member.status;
+      document.getElementById('edit-member-role').value = member.role;
+      showModal('edit-member-modal');
+    }
+
+    document.getElementById('edit-member-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = e.target.querySelector('button[type="submit"]');
+      const originalHTML = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner spin mr-2"></i> กำลังบันทึก...';
+
+      setTimeout(async () => {
+        const backendId = document.getElementById('edit-member-id').value;
+        const member = appData.find(d => d.__backendId === backendId);
+        
+        if (member) {
+          const newPassword = document.getElementById('edit-member-password').value;
+          const updatedMember = {
+            ...member,
+            username: document.getElementById('edit-member-username').value,
+            fullname: document.getElementById('edit-member-fullname').value,
+            email: document.getElementById('edit-member-email').value,
+            status: document.getElementById('edit-member-status').value,
+            role: document.getElementById('edit-member-role').value
+          };
+
+          if (newPassword && newPassword.trim().length > 0) {
+            updatedMember.password = newPassword;
+          }
+
+          const result = await window.dataSdk.update(updatedMember);
+          btn.disabled = false;
+          btn.innerHTML = originalHTML;
+          
+          if (result.isOk) {
+            hideModal('edit-member-modal');
+            document.getElementById('edit-member-password').value = '';
+            showAlert('success', 'สำเร็จ', 'แก้ไขข้อมูลสมาชิกเรียบร้อยแล้ว');
+          } else {
+            showAlert('error', 'ผิดพลาด', 'ไม่สามารถแก้ไขข้อมูลได้');
+          }
+        }
+      }, 300);
+    });
+
+    function deleteMember(backendId) {
+      const member = appData.find(d => d.__backendId === backendId);
+      if (!member) return;
+
+      const members = getMembers();
+      const mainAdmin = members.find(m => m.role === 'admin');
+      
+      if (!currentUser || !mainAdmin || currentUser.__backendId !== mainAdmin.__backendId) {
+        showAlert('error', 'ไม่มีสิทธิ์', 'เฉพาะผู้ดูแลระบบหลักเท่านั้นที่สามารถลบสมาชิก');
+        return;
+      }
+
+      if (currentUser.__backendId === backendId) {
+        showAlert('error', 'ไม่สามารถลบได้', 'ผู้ดูแลระบบหลักไม่สามารถลบตัวเองได้');
+        return;
+      }
+
+      showConfirmDelete('คุณต้องการลบสมาชิกนี้ใช่หรือไม่?', async () => {
+        const result = await window.dataSdk.delete(member);
+        if (result.isOk) {
+          showAlert('success', 'สำเร็จ', 'ลบสมาชิกเรียบร้อยแล้ว');
+        }
+      });
+    }
+
     // Exam Creation (รองรับการแปลงข้อสอบแบบยืดหยุ่น: ภาษาไทย, อังกฤษ, จีน + รูปภาพ [img:...])
     function parseMultipleChoice() {
       const input = document.getElementById('mc-input').value.trim();
@@ -1968,16 +2484,10 @@ Score: 1</pre>
 
           const questions = (typeof exam.questions === 'string') ? JSON.parse(exam.questions) : exam.questions;
           
-          // สร้าง mapping สำรองสำหรับการสุ่มตัวเลือก
           const processedMc = questions.mc.map((q, qIndex) => {
-            let choiceList = [...q.choices];
-            if (exam.shuffle_choices) {
-              choiceList = shuffleArray([...choiceList]);
-            }
             return {
               ...q,
-              originalIndex: qIndex,
-              displayChoices: choiceList
+              originalIndex: qIndex
             };
           });
 
