@@ -153,7 +153,7 @@
     <!-- Footer -->
     <footer class="gradient-footer text-white py-4 px-6">
      <div class="max-w-6xl mx-auto text-center">
-      <p class="text-sm md:text-base">ระบบข้อสอบออนไลน์ วิทยาลัยเทคนิคดอนเมือง DMTC</p>
+      <p class="text-sm md:text-base">ระบบข้อสอบออนไลน์ วิทยาลัยเทคนิคดอนเมือง</p>
       <p class="text-xs text-blue-200 mt-1">พัฒนาโดย ครูปอนด์ นายณรงค์เดช ชัยเดชะ @2026 V.3</p>
      </div>
     </footer>
@@ -258,7 +258,7 @@
     </main>
     <footer class="gradient-footer text-white py-4 px-6">
      <div class="max-w-6xl mx-auto text-center">
-      <p class="text-sm md:text-base">ระบบข้อสอบออนไลน์ วิทยาลัยเทคนิคดอนเมือง DMTC</p>
+      <p class="text-sm md:text-base">ระบบข้อสอบออนไลน์ วิทยาลัยเทคนิคดอนเมือง</p>
       <p class="text-xs text-blue-200 mt-1">พัฒนาโดย ครูปอนด์ นายณรงค์เดช ชัยเดชะ @2026 V.3</p>
      </div>
     </footer>
@@ -421,8 +421,8 @@
            <input type="number" id="exam-total-score" required min="1" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none" placeholder="เช่น 100">
           </div>
           <div>
-           <label class="block text-gray-700 font-medium mb-2">คะแนนที่ผ่านเกณฑ์</label>
-           <input type="number" id="exam-passing-score" required min="0" step="0.5" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none" placeholder="เช่น 50">
+           <label class="block text-gray-700 font-medium mb-2"><i class="fas fa-check-circle text-green-500 mr-1"></i>คะแนนที่ผ่านเกณฑ์</label>
+           <input type="number" id="exam-passing-score" required min="0" step="0.5" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none border-green-300 bg-green-50/30" placeholder="เช่น 50">
           </div>
           <div>
            <label class="block text-gray-700 font-medium mb-2">เวลาทำข้อสอบ (นาที)</label>
@@ -651,7 +651,7 @@ Score: 1</pre>
           <div>
            <label class="block text-gray-700 font-medium mb-2">รหัสผ่านใหม่ (เว้นว่างถ้าไม่เปลี่ยน)</label>
            <div class="relative">
-            <input type="password" id="profile-password" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none pr-12"> <button type="button" onclick="togglePasswordVisibility('profile-password')" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition"> <i class="fas fa-eye" id="profile-password-icon"></i> </button>
+            <input type="password" id="profile-password" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none pr-12"> <button type="button" onmousedown="showPassword('profile-password', event)" onmouseup="hidePassword('profile-password')" onmouseleave="hidePassword('profile-password')" ontouchstart="showPassword('profile-password', event)" ontouchend="hidePassword('profile-password')" ontouchcancel="hidePassword('profile-password')" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition select-none"> <i class="fas fa-eye" id="profile-password-icon"></i> </button>
            </div>
           </div><button type="submit" class="w-full bg-primary-500 hover:bg-primary-600 text-white font-bold py-3 px-6 rounded-xl btn-hover"> <i class="fas fa-save mr-2"></i> บันทึก </button>
          </form>
@@ -676,7 +676,7 @@ Score: 1</pre>
       <div>
        <label class="block text-gray-700 font-medium mb-2">รหัสผ่าน</label>
        <div class="relative">
-        <input type="password" id="admin-password" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none pr-12"> <button type="button" onclick="togglePasswordVisibility('admin-password')" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition"> <i class="fas fa-eye" id="admin-password-icon"></i> </button>
+        <input type="password" id="admin-password" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none pr-12"> <button type="button" onmousedown="showPassword('admin-password', event)" onmouseup="hidePassword('admin-password')" onmouseleave="hidePassword('admin-password')" ontouchstart="showPassword('admin-password', event)" ontouchend="hidePassword('admin-password')" ontouchcancel="hidePassword('admin-password')" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition select-none"> <i class="fas fa-eye" id="admin-password-icon"></i> </button>
        </div>
       </div><button type="submit" class="w-full bg-primary-500 hover:bg-primary-600 text-white font-bold py-3 px-6 rounded-xl btn-hover"> <i class="fas fa-sign-in-alt mr-2"></i> เข้าสู่ระบบ </button>
      </form>
@@ -705,7 +705,7 @@ Score: 1</pre>
       <div>
        <label class="block text-gray-700 font-medium mb-2">รหัสผ่าน</label>
        <div class="relative">
-        <input type="password" id="reg-password" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none pr-12"> <button type="button" onclick="togglePasswordVisibility('reg-password')" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition"> <i class="fas fa-eye" id="reg-password-icon"></i> </button>
+        <input type="password" id="reg-password" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none pr-12"> <button type="button" onmousedown="showPassword('reg-password', event)" onmouseup="hidePassword('reg-password')" onmouseleave="hidePassword('reg-password')" ontouchstart="showPassword('reg-password', event)" ontouchend="hidePassword('reg-password')" ontouchcancel="hidePassword('reg-password')" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition select-none"> <i class="fas fa-eye" id="reg-password-icon"></i> </button>
        </div>
       </div><button type="submit" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-xl btn-hover"> <i class="fas fa-user-plus mr-2"></i> สมัครสมาชิก </button>
      </form>
@@ -734,7 +734,7 @@ Score: 1</pre>
       <div>
        <label class="block text-gray-700 font-medium mb-2">รหัสผ่าน</label>
        <div class="relative">
-        <input type="password" id="member-password" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none pr-12"> <button type="button" onclick="togglePasswordVisibility('member-password')" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition"> <i class="fas fa-eye" id="member-password-icon"></i> </button>
+        <input type="password" id="member-password" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none pr-12"> <button type="button" onmousedown="showPassword('member-password', event)" onmouseup="hidePassword('member-password')" onmouseleave="hidePassword('member-password')" ontouchstart="showPassword('member-password', event)" ontouchend="hidePassword('member-password')" ontouchcancel="hidePassword('member-password')" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition select-none"> <i class="fas fa-eye" id="member-password-icon"></i> </button>
        </div>
       </div>
       <div>
@@ -764,7 +764,7 @@ Score: 1</pre>
       <div>
        <label class="block text-gray-700 font-medium mb-2">รหัสผ่านใหม่ (เว้นว่างถ้าไม่เปลี่ยน)</label>
        <div class="relative">
-        <input type="password" id="edit-member-password" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none pr-12"> <button type="button" onclick="togglePasswordVisibility('edit-member-password')" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition"> <i class="fas fa-eye" id="edit-member-password-icon"></i> </button>
+        <input type="password" id="edit-member-password" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none pr-12"> <button type="button" onmousedown="showPassword('edit-member-password', event)" onmouseup="hidePassword('edit-member-password')" onmouseleave="hidePassword('edit-member-password')" ontouchstart="showPassword('edit-member-password', event)" ontouchend="hidePassword('edit-member-password')" ontouchcancel="hidePassword('edit-member-password')" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition select-none"> <i class="fas fa-eye" id="edit-member-password-icon"></i> </button>
        </div>
       </div>
       <div>
@@ -1033,17 +1033,25 @@ Score: 1</pre>
       return Date.now().toString(36) + Math.random().toString(36).substr(2);
     }
 
-    // Toggle Password Visibility
-    function togglePasswordVisibility(inputId) {
+    // Hold to Show Password
+    function showPassword(inputId, event) {
+      if (event && event.type === 'touchstart') {
+        event.preventDefault();
+      }
       const input = document.getElementById(inputId);
       const icon = document.getElementById(inputId + '-icon');
-      
-      if (input.type === 'password') {
-        input.type = 'text';
+      if (input) input.type = 'text';
+      if (icon) {
         icon.classList.remove('fa-eye');
         icon.classList.add('fa-eye-slash');
-      } else {
-        input.type = 'password';
+      }
+    }
+
+    function hidePassword(inputId) {
+      const input = document.getElementById(inputId);
+      const icon = document.getElementById(inputId + '-icon');
+      if (input) input.type = 'password';
+      if (icon) {
         icon.classList.remove('fa-eye-slash');
         icon.classList.add('fa-eye');
       }
