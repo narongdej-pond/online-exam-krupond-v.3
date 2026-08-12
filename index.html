@@ -421,8 +421,8 @@
            <input type="number" id="exam-total-score" required min="1" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none" placeholder="เช่น 100">
           </div>
           <div>
-           <label class="block text-gray-700 font-medium mb-2"</i>คะแนนที่ผ่านเกณฑ์</label>
-           <input type="number" id="exam-passing-score" required min="0" step="0.5" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none" placeholder="เช่น 50">
+           <label class="block text-gray-700 font-medium mb-2"><i class="fas fa-check-circle text-green-500 mr-1"></i>คะแนนที่ผ่านเกณฑ์</label>
+           <input type="number" id="exam-passing-score" required min="0" step="0.5" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none border-green-300 bg-green-50/30" placeholder="เช่น 50">
           </div>
           <div>
            <label class="block text-gray-700 font-medium mb-2">เวลาทำข้อสอบ (นาที)</label>
@@ -928,15 +928,33 @@ Score: 1</pre>
       }
         
       try {
+          showLoading('กำลังโหลดข้อมูลระบบ...');
           const data = await window.dataSdk._callAPI('getData');
           appData = data || [];
-          document.getElementById('loading').classList.add('hidden');
           showPage('home');
           updateUI();
       } catch (err) {
           console.error("Failed to load data:", err);
-          alert("โหลดข้อมูลล้มเหลว โปรดตรวจสอบ URL ของ Google Apps Script หรือรีเฟรชหน้าเว็บ");
-          document.getElementById('loading').classList.add('hidden');
+          showAlert('error', 'ผิดพลาด', "โหลดข้อมูลล้มเหลว โปรดตรวจสอบ URL ของ Google Apps Script หรือรีเฟรชหน้าเว็บ");
+      } finally {
+          hideLoading();
+      }
+    }
+
+    // Global Loading Helpers
+    function showLoading(message = 'กำลังโหลด...') {
+      const loadingEl = document.getElementById('loading');
+      if (loadingEl) {
+        const textEl = loadingEl.querySelector('p');
+        if (textEl) textEl.textContent = message;
+        loadingEl.classList.remove('hidden');
+      }
+    }
+
+    function hideLoading() {
+      const loadingEl = document.getElementById('loading');
+      if (loadingEl) {
+        loadingEl.classList.add('hidden');
       }
     }
 
@@ -1588,109 +1606,99 @@ Score: 1</pre>
 
     async function refreshData() {
         try {
-            document.getElementById('loading').classList.remove('hidden');
+            showLoading('กำลังรีเฟรชข้อมูล...');
             const data = await window.dataSdk._callAPI('getData');
             appData = data || [];
             updateUI();
-            document.getElementById('loading').classList.add('hidden');
             showAlert('info', 'รีเฟรชข้อมูล', 'ข้อมูลได้รับการอัปเดตแล้ว');
         } catch (err) {
-            document.getElementById('loading').classList.add('hidden');
             showAlert('error', 'ผิดพลาด', 'ไม่สามารถรีเฟรชข้อมูลได้');
+        } finally {
+            hideLoading();
         }
     }
 
     // Auth Functions
     document.getElementById('admin-login-form').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const btn = e.target.querySelector('button[type="submit"]');
-      const originalHTML = btn.innerHTML;
-      btn.disabled = true;
-      btn.innerHTML = '<i class="fas fa-spinner spin mr-2"></i> กำลังเข้าสู่ระบบ...';
+      showLoading('กำลังเข้าสู่ระบบ...');
 
       setTimeout(() => {
-        const username = document.getElementById('admin-username').value;
-        const password = document.getElementById('admin-password').value;
+        try {
+          const username = document.getElementById('admin-username').value;
+          const password = document.getElementById('admin-password').value;
 
-        const member = getMembers().find(m => m.username === username && m.password === password);
-        if (member) {
-          if (member.status !== 'active') {
-            btn.disabled = false;
-            btn.innerHTML = originalHTML;
-            showAlert('warning', 'รออนุมัติ', 'บัญชีของคุณยังรออนุมัติจากผู้ดูแลระบบ');
-            return;
+          const member = getMembers().find(m => m.username === username && m.password === password);
+          if (member) {
+            if (member.status !== 'active') {
+              showAlert('warning', 'รออนุมัติ', 'บัญชีของคุณยังรออนุมัติจากผู้ดูแลระบบ');
+              return;
+            }
+            currentUser = member;
+            document.getElementById('admin-name').textContent = member.fullname;
+            document.getElementById('admin-role').textContent = member.role === 'admin' ? 'ผู้ดูแลหลัก' : 'ครู';
+            document.getElementById('profile-fullname').value = member.fullname;
+            document.getElementById('profile-email').value = member.email;
+            hideModal('admin-login-modal');
+            showPage('admin');
+            showAdminPage('dashboard');
+            updateUI();
+          } else {
+            showAlert('error', 'เข้าสู่ระบบไม่สำเร็จ', 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
           }
-          currentUser = member;
-          document.getElementById('admin-name').textContent = member.fullname;
-          document.getElementById('admin-role').textContent = member.role === 'admin' ? 'ผู้ดูแลหลัก' : 'ครู';
-          document.getElementById('profile-fullname').value = member.fullname;
-          document.getElementById('profile-email').value = member.email;
-          btn.disabled = false;
-          btn.innerHTML = originalHTML;
-          hideModal('admin-login-modal');
-          showPage('admin');
-          showAdminPage('dashboard');
-          updateUI();
-        } else {
-          btn.disabled = false;
-          btn.innerHTML = originalHTML;
-          showAlert('error', 'เข้าสู่ระบบไม่สำเร็จ', 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
+        } finally {
+          hideLoading();
         }
       }, 300);
     });
 
     document.getElementById('admin-register-form').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const btn = e.target.querySelector('button[type="submit"]');
-      const originalHTML = btn.innerHTML;
-      btn.disabled = true;
-      btn.innerHTML = '<i class="fas fa-spinner spin mr-2"></i> กำลังสมัครสมาชิก...';
+      showLoading('กำลังสมัครสมาชิก...');
 
       setTimeout(async () => {
-        const members = getMembers();
-        
-        if (members.length >= 999) {
-          btn.disabled = false;
-          btn.innerHTML = originalHTML;
-          showAlert('warning', 'ถึงขีดจำกัด', 'ไม่สามารถเพิ่มสมาชิกได้อีก');
-          return;
-        }
-
-        const username = document.getElementById('reg-username').value;
-        if (members.find(m => m.username === username)) {
-          btn.disabled = false;
-          btn.innerHTML = originalHTML;
-          showAlert('error', 'ผิดพลาด', 'ชื่อผู้ใช้นี้มีอยู่แล้ว');
-          return;
-        }
-
-        const isFirstMember = members.length === 0;
-        const newMember = {
-          id: generateId(),
-          type: 'member',
-          username: username,
-          password: document.getElementById('reg-password').value,
-          fullname: document.getElementById('reg-fullname').value,
-          email: document.getElementById('reg-email').value,
-          role: isFirstMember ? 'admin' : 'teacher',
-          status: isFirstMember ? 'active' : 'pending',
-          created_at: new Date().toISOString()
-        };
-
-        const result = await window.dataSdk.create(newMember);
-        btn.disabled = false;
-        btn.innerHTML = originalHTML;
-        
-        if (result.isOk) {
-          hideModal('admin-register-modal');
-          if (isFirstMember) {
-            showAlert('success', 'สมัครสำเร็จ', 'คุณเป็นผู้ดูแลระบบหลัก สามารถเข้าสู่ระบบได้เลย');
-          } else {
-            showAlert('success', 'สมัครสำเร็จ', 'กรุณารอการอนุมัติจากผู้ดูแลระบบ');
+        try {
+          const members = getMembers();
+          
+          if (members.length >= 999) {
+            showAlert('warning', 'ถึงขีดจำกัด', 'ไม่สามารถเพิ่มสมาชิกได้อีก');
+            return;
           }
-          showModal('admin-login-modal');
-        } else {
-          showAlert('error', 'ผิดพลาด', 'ไม่สามารถสมัครสมาชิกได้');
+
+          const username = document.getElementById('reg-username').value;
+          if (members.find(m => m.username === username)) {
+            showAlert('error', 'ผิดพลาด', 'ชื่อผู้ใช้นี้มีอยู่แล้ว');
+            return;
+          }
+
+          const isFirstMember = members.length === 0;
+          const newMember = {
+            id: generateId(),
+            type: 'member',
+            username: username,
+            password: document.getElementById('reg-password').value,
+            fullname: document.getElementById('reg-fullname').value,
+            email: document.getElementById('reg-email').value,
+            role: isFirstMember ? 'admin' : 'teacher',
+            status: isFirstMember ? 'active' : 'pending',
+            created_at: new Date().toISOString()
+          };
+
+          const result = await window.dataSdk.create(newMember);
+          
+          if (result.isOk) {
+            hideModal('admin-register-modal');
+            if (isFirstMember) {
+              showAlert('success', 'สมัครสำเร็จ', 'คุณเป็นผู้ดูแลระบบหลัก สามารถเข้าสู่ระบบได้เลย');
+            } else {
+              showAlert('success', 'สมัครสำเร็จ', 'กรุณารอการอนุมัติจากผู้ดูแลระบบ');
+            }
+            showModal('admin-login-modal');
+          } else {
+            showAlert('error', 'ผิดพลาด', 'ไม่สามารถสมัครสมาชิกได้');
+          }
+        } finally {
+          hideLoading();
         }
       }, 300);
     });
@@ -1704,53 +1712,48 @@ Score: 1</pre>
     // Member Management
     document.getElementById('add-member-form').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const btn = e.target.querySelector('button[type="submit"]');
-      const originalHTML = btn.innerHTML;
-      btn.disabled = true;
-      btn.innerHTML = '<i class="fas fa-spinner spin mr-2"></i> กำลังเพิ่มสมาชิก...';
+      showLoading('กำลังเพิ่มสมาชิก...');
 
       setTimeout(async () => {
-        const members = getMembers();
-        const mainAdmin = members.find(m => m.role === 'admin');
-        
-        if (!currentUser || !mainAdmin || currentUser.__backendId !== mainAdmin.__backendId) {
-          btn.disabled = false;
-          btn.innerHTML = originalHTML;
-          showAlert('error', 'ไม่มีสิทธิ์', 'เฉพาะผู้ดูแลระบบหลักเท่านั้นที่สามารถเพิ่มสมาชิกได้');
-          hideModal('add-member-modal');
-          return;
-        }
+        try {
+          const members = getMembers();
+          const mainAdmin = members.find(m => m.role === 'admin');
+          
+          if (!currentUser || !mainAdmin || currentUser.__backendId !== mainAdmin.__backendId) {
+            showAlert('error', 'ไม่มีสิทธิ์', 'เฉพาะผู้ดูแลระบบหลักเท่านั้นที่สามารถเพิ่มสมาชิกได้');
+            hideModal('add-member-modal');
+            return;
+          }
 
-        const username = document.getElementById('member-username').value;
-        if (members.find(m => m.username === username)) {
-          btn.disabled = false;
-          btn.innerHTML = originalHTML;
-          showAlert('error', 'ผิดพลาด', 'ชื่อผู้ใช้นี้มีอยู่แล้ว');
-          return;
-        }
+          const username = document.getElementById('member-username').value;
+          if (members.find(m => m.username === username)) {
+            showAlert('error', 'ผิดพลาด', 'ชื่อผู้ใช้นี้มีอยู่แล้ว');
+            return;
+          }
 
-        const newMember = {
-          id: generateId(),
-          type: 'member',
-          username: username,
-          password: document.getElementById('member-password').value,
-          fullname: document.getElementById('member-fullname').value,
-          email: document.getElementById('member-email').value,
-          role: document.getElementById('member-role').value,
-          status: 'active',
-          created_at: new Date().toISOString()
-        };
+          const newMember = {
+            id: generateId(),
+            type: 'member',
+            username: username,
+            password: document.getElementById('member-password').value,
+            fullname: document.getElementById('member-fullname').value,
+            email: document.getElementById('member-email').value,
+            role: document.getElementById('member-role').value,
+            status: 'active',
+            created_at: new Date().toISOString()
+          };
 
-        const result = await window.dataSdk.create(newMember);
-        btn.disabled = false;
-        btn.innerHTML = originalHTML;
-        
-        if (result.isOk) {
-          hideModal('add-member-modal');
-          showAlert('success', 'สำเร็จ', 'เพิ่มสมาชิกเรียบร้อยแล้ว');
-          e.target.reset();
-        } else {
-          showAlert('error', 'ผิดพลาด', 'ไม่สามารถเพิ่มสมาชิกได้');
+          const result = await window.dataSdk.create(newMember);
+          
+          if (result.isOk) {
+            hideModal('add-member-modal');
+            showAlert('success', 'สำเร็จ', 'เพิ่มสมาชิกเรียบร้อยแล้ว');
+            e.target.reset();
+          } else {
+            showAlert('error', 'ผิดพลาด', 'ไม่สามารถเพิ่มสมาชิกได้');
+          }
+        } finally {
+          hideLoading();
         }
       }, 300);
     });
@@ -1776,41 +1779,40 @@ Score: 1</pre>
 
     document.getElementById('edit-member-form').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const btn = e.target.querySelector('button[type="submit"]');
-      const originalHTML = btn.innerHTML;
-      btn.disabled = true;
-      btn.innerHTML = '<i class="fas fa-spinner spin mr-2"></i> กำลังบันทึก...';
+      showLoading('กำลังบันทึกข้อมูลสมาชิก...');
 
       setTimeout(async () => {
-        const backendId = document.getElementById('edit-member-id').value;
-        const member = appData.find(d => d.__backendId === backendId);
-        
-        if (member) {
-          const newPassword = document.getElementById('edit-member-password').value;
-          const updatedMember = {
-            ...member,
-            username: document.getElementById('edit-member-username').value,
-            fullname: document.getElementById('edit-member-fullname').value,
-            email: document.getElementById('edit-member-email').value,
-            status: document.getElementById('edit-member-status').value,
-            role: document.getElementById('edit-member-role').value
-          };
-
-          if (newPassword && newPassword.trim().length > 0) {
-            updatedMember.password = newPassword;
-          }
-
-          const result = await window.dataSdk.update(updatedMember);
-          btn.disabled = false;
-          btn.innerHTML = originalHTML;
+        try {
+          const backendId = document.getElementById('edit-member-id').value;
+          const member = appData.find(d => d.__backendId === backendId);
           
-          if (result.isOk) {
-            hideModal('edit-member-modal');
-            document.getElementById('edit-member-password').value = '';
-            showAlert('success', 'สำเร็จ', 'แก้ไขข้อมูลสมาชิกเรียบร้อยแล้ว');
-          } else {
-            showAlert('error', 'ผิดพลาด', 'ไม่สามารถแก้ไขข้อมูลได้');
+          if (member) {
+            const newPassword = document.getElementById('edit-member-password').value;
+            const updatedMember = {
+              ...member,
+              username: document.getElementById('edit-member-username').value,
+              fullname: document.getElementById('edit-member-fullname').value,
+              email: document.getElementById('edit-member-email').value,
+              status: document.getElementById('edit-member-status').value,
+              role: document.getElementById('edit-member-role').value
+            };
+
+            if (newPassword && newPassword.trim().length > 0) {
+              updatedMember.password = newPassword;
+            }
+
+            const result = await window.dataSdk.update(updatedMember);
+            
+            if (result.isOk) {
+              hideModal('edit-member-modal');
+              document.getElementById('edit-member-password').value = '';
+              showAlert('success', 'สำเร็จ', 'แก้ไขข้อมูลสมาชิกเรียบร้อยแล้ว');
+            } else {
+              showAlert('error', 'ผิดพลาด', 'ไม่สามารถแก้ไขข้อมูลได้');
+            }
           }
+        } finally {
+          hideLoading();
         }
       }, 300);
     });
@@ -1833,9 +1835,14 @@ Score: 1</pre>
       }
 
       showConfirmDelete('คุณต้องการลบสมาชิกนี้ใช่หรือไม่?', async () => {
-        const result = await window.dataSdk.delete(member);
-        if (result.isOk) {
-          showAlert('success', 'สำเร็จ', 'ลบสมาชิกเรียบร้อยแล้ว');
+        showLoading('กำลังลบสมาชิก...');
+        try {
+          const result = await window.dataSdk.delete(member);
+          if (result.isOk) {
+            showAlert('success', 'สำเร็จ', 'ลบสมาชิกเรียบร้อยแล้ว');
+          }
+        } finally {
+          hideLoading();
         }
       });
     }
@@ -1848,86 +1855,84 @@ Score: 1</pre>
         return;
       }
 
-      const btn = event.target;
-      const originalHTML = btn.innerHTML;
-      btn.disabled = true;
-      btn.innerHTML = '<i class="fas fa-spinner spin mr-2"></i> กำลังแปลง...';
+      showLoading('กำลังแปลงข้อสอบปรนัย...');
 
       setTimeout(() => {
-        const questionBlocks = input.split(/\n(?=\d+\.)/);
-        parsedMCQuestions = [];
+        try {
+          const questionBlocks = input.split(/\n(?=\d+\.)/);
+          parsedMCQuestions = [];
 
-        questionBlocks.forEach(block => {
-          const lines = block.trim().split('\n');
-          if (lines.length < 3) return;
+          questionBlocks.forEach(block => {
+            const lines = block.trim().split('\n');
+            if (lines.length < 3) return;
 
-          const questionLine = lines[0].trim();
-          const questionMatch = questionLine.match(/^\d+\.(.*)/);
-          if (!questionMatch) return;
+            const questionLine = lines[0].trim();
+            const questionMatch = questionLine.match(/^\d+\.(.*)/);
+            if (!questionMatch) return;
 
-          let rawQText = questionMatch[1].trim();
-          let imgUrl = '';
-          const imgMatch = rawQText.match(/\[img:(.*?)\]/i);
-          if (imgMatch) {
-            imgUrl = imgMatch[1].trim();
-            rawQText = rawQText.replace(imgMatch[0], '').trim();
-          }
-
-          const choices = [];
-          let answer = '';
-          let score = 1;
-
-          for (let i = 1; i < lines.length; i++) {
-            const line = lines[i].trim();
-            const choiceMatch = line.match(/^([ก-ขคงจA-Ea-e1-5])[\.\)]\s*(.*)/);
-            const answerMatch = line.match(/^(?:เฉลย|Answer|答案):\s*([ก-ขคงจA-Ea-e1-5])/i);
-            const scoreMatch = line.match(/^(?:คะแนน|Score|分):\s*(\d+(?:\.\d+)?)/i);
-
-            if (choiceMatch) {
-              choices.push({ key: choiceMatch[1].toUpperCase(), text: choiceMatch[2].trim() });
-            } else if (answerMatch) {
-              answer = answerMatch[1].toUpperCase();
-            } else if (scoreMatch) {
-              score = parseFloat(scoreMatch[1]);
+            let rawQText = questionMatch[1].trim();
+            let imgUrl = '';
+            const imgMatch = rawQText.match(/\[img:(.*?)\]/i);
+            if (imgMatch) {
+              imgUrl = imgMatch[1].trim();
+              rawQText = rawQText.replace(imgMatch[0], '').trim();
             }
-          }
 
-          if (rawQText && choices.length >= 2 && answer) {
-            parsedMCQuestions.push({ question: rawQText, image: imgUrl, choices, answer, score: score || 1 });
-          }
-        });
+            const choices = [];
+            let answer = '';
+            let score = 1;
 
-        btn.disabled = false;
-        btn.innerHTML = originalHTML;
+            for (let i = 1; i < lines.length; i++) {
+              const line = lines[i].trim();
+              const choiceMatch = line.match(/^([ก-ขคงจA-Ea-e1-5])[\.\)]\s*(.*)/);
+              const answerMatch = line.match(/^(?:เฉลย|Answer|答案):\s*([ก-ขคงจA-Ea-e1-5])/i);
+              const scoreMatch = line.match(/^(?:คะแนน|Score|分):\s*(\d+(?:\.\d+)?)/i);
 
-        if (parsedMCQuestions.length > 0) {
-          document.getElementById('mc-preview').classList.remove('hidden');
-          const previewLimit = 3;
-          document.getElementById('mc-preview-content').innerHTML = parsedMCQuestions.slice(0, previewLimit).map((q, i) => `
-            <div class="border-2 border-blue-300 rounded-lg p-4 bg-gradient-to-br from-white to-blue-50 hover:shadow-lg transition">
-              <div class="flex items-start justify-between mb-3">
-                <p class="font-bold text-gray-900 flex-1"><span class="text-blue-600 bg-blue-100 px-2 py-1 rounded">ข้อที่ ${i + 1}</span> ${q.question}</p>
-                <span class="badge badge-info ml-2 whitespace-nowrap"><i class="fas fa-star mr-1"></i>${q.score} คะแนน</span>
+              if (choiceMatch) {
+                choices.push({ key: choiceMatch[1].toUpperCase(), text: choiceMatch[2].trim() });
+              } else if (answerMatch) {
+                answer = answerMatch[1].toUpperCase();
+              } else if (scoreMatch) {
+                score = parseFloat(scoreMatch[1]);
+              }
+            }
+
+            if (rawQText && choices.length >= 2 && answer) {
+              parsedMCQuestions.push({ question: rawQText, image: imgUrl, choices, answer, score: score || 1 });
+            }
+          });
+
+          if (parsedMCQuestions.length > 0) {
+            document.getElementById('mc-preview').classList.remove('hidden');
+            const previewLimit = 3;
+            document.getElementById('mc-preview-content').innerHTML = parsedMCQuestions.slice(0, previewLimit).map((q, i) => `
+              <div class="border-2 border-blue-300 rounded-lg p-4 bg-gradient-to-br from-white to-blue-50 hover:shadow-lg transition">
+                <div class="flex items-start justify-between mb-3">
+                  <p class="font-bold text-gray-900 flex-1"><span class="text-blue-600 bg-blue-100 px-2 py-1 rounded">ข้อที่ ${i + 1}</span> ${q.question}</p>
+                  <span class="badge badge-info ml-2 whitespace-nowrap"><i class="fas fa-star mr-1"></i>${q.score} คะแนน</span>
+                </div>
+                ${q.image ? `<img src="${q.image}" class="my-2 max-h-40 rounded border object-contain">` : ''}
+                <div class="space-y-2 pl-4 text-sm">
+                  ${q.choices.map(c => `
+                    <p class="${c.key === q.answer ? 'text-green-600 font-bold bg-green-50 -ml-4 pl-4 py-1' : 'text-gray-700'}">
+                      <span class="font-semibold">${c.key}.</span> ${c.text} ${c.key === q.answer ? '<i class="fas fa-check-circle ml-2 text-green-500"></i>' : ''}
+                    </p>
+                  `).join('')}
+                </div>
               </div>
-              ${q.image ? `<img src="${q.image}" class="my-2 max-h-40 rounded border object-contain">` : ''}
-              <div class="space-y-2 pl-4 text-sm">
-                ${q.choices.map(c => `
-                  <p class="${c.key === q.answer ? 'text-green-600 font-bold bg-green-50 -ml-4 pl-4 py-1' : 'text-gray-700'}">
-                    <span class="font-semibold">${c.key}.</span> ${c.text} ${c.key === q.answer ? '<i class="fas fa-check-circle ml-2 text-green-500"></i>' : ''}
-                  </p>
-                `).join('')}
-              </div>
-            </div>
-          `).join('');
-          
-          let countText = `✓ พบ <strong class="text-blue-600">${parsedMCQuestions.length}</strong> ข้อสอบปรนัย`;
-          if (parsedMCQuestions.length > previewLimit) {
-            countText += ` (แสดง ${previewLimit} ข้อแรก)`;
+            `).join('');
+            
+            let countText = `✓ พบ <strong class="text-blue-600">${parsedMCQuestions.length}</strong> ข้อสอบปรนัย`;
+            if (parsedMCQuestions.length > previewLimit) {
+              countText += ` (แสดง ${previewLimit} ข้อแรก)`;
+            }
+            document.getElementById('mc-preview-count').innerHTML = countText;
+            showAlert('success', 'แปลงสำเร็จ', `พบข้อสอบปรนัย ${parsedMCQuestions.length} ข้อ พร้อมคะแนนแล้ว`);
+          } else {
+            showAlert('error', 'แปลงไม่สำเร็จ', 'ไม่พบข้อสอบที่ถูกต้องตามรูปแบบ');
           }
-          document.getElementById('mc-preview-count').innerHTML = countText;
-          showAlert('success', 'แปลงสำเร็จ', `พบข้อสอบปรนัย ${parsedMCQuestions.length} ข้อ พร้อมคะแนนแล้ว`);
-        } else {
-          showAlert('error', 'แปลงไม่สำเร็จ', 'ไม่พบข้อสอบที่ถูกต้องตามรูปแบบ');
+        } finally {
+          hideLoading();
         }
       }, 300);
     }
@@ -1939,72 +1944,70 @@ Score: 1</pre>
         return;
       }
 
-      const btn = event.target;
-      const originalHTML = btn.innerHTML;
-      btn.disabled = true;
-      btn.innerHTML = '<i class="fas fa-spinner spin mr-2"></i> กำลังแปลง...';
+      showLoading('กำลังแปลงข้อสอบอัตนัย...');
 
       setTimeout(() => {
-        const questionBlocks = input.split(/\n(?=\d+\.)/);
-        parsedEssayQuestions = [];
+        try {
+          const questionBlocks = input.split(/\n(?=\d+\.)/);
+          parsedEssayQuestions = [];
 
-        questionBlocks.forEach(block => {
-          const lines = block.trim().split('\n');
-          if (lines.length < 1) return;
+          questionBlocks.forEach(block => {
+            const lines = block.trim().split('\n');
+            if (lines.length < 1) return;
 
-          const questionMatch = lines[0].match(/^\d+\.(.*)/);
-          if (!questionMatch) return;
+            const questionMatch = lines[0].match(/^\d+\.(.*)/);
+            if (!questionMatch) return;
 
-          let rawQText = questionMatch[1].trim();
-          let imgUrl = '';
-          const imgMatch = rawQText.match(/\[img:(.*?)\]/i);
-          if (imgMatch) {
-            imgUrl = imgMatch[1].trim();
-            rawQText = rawQText.replace(imgMatch[0], '').trim();
-          }
-
-          let maxScore = 5;
-
-          for (let i = 1; i < lines.length; i++) {
-            const scoreMatch = lines[i].match(/^(?:คะแนน|Score|分):\s*(\d+)/i);
-            if (scoreMatch) {
-              maxScore = parseInt(scoreMatch[1]);
-              break;
+            let rawQText = questionMatch[1].trim();
+            let imgUrl = '';
+            const imgMatch = rawQText.match(/\[img:(.*?)\]/i);
+            if (imgMatch) {
+              imgUrl = imgMatch[1].trim();
+              rawQText = rawQText.replace(imgMatch[0], '').trim();
             }
-          }
 
-          if (rawQText) {
-            parsedEssayQuestions.push({ question: rawQText, image: imgUrl, maxScore: maxScore || 5 });
-          }
-        });
+            let maxScore = 5;
 
-        btn.disabled = false;
-        btn.innerHTML = originalHTML;
+            for (let i = 1; i < lines.length; i++) {
+              const scoreMatch = lines[i].match(/^(?:คะแนน|Score|分):\s*(\d+)/i);
+              if (scoreMatch) {
+                maxScore = parseInt(scoreMatch[1]);
+                break;
+              }
+            }
 
-        if (parsedEssayQuestions.length > 0) {
-          document.getElementById('essay-preview').classList.remove('hidden');
-          const previewLimit = 3;
-          document.getElementById('essay-preview-content').innerHTML = parsedEssayQuestions.slice(0, previewLimit).map((q, i) => `
-            <div class="border-2 border-orange-300 rounded-lg p-4 bg-gradient-to-br from-white to-orange-50 hover:shadow-lg transition">
-              <div class="flex items-start justify-between mb-3">
-                <p class="font-bold text-gray-900 flex-1"><span class="text-orange-600 bg-orange-100 px-2 py-1 rounded">ข้อที่ ${i + 1}</span> ${q.question}</p>
-                <span class="badge badge-warning ml-2 whitespace-nowrap"><i class="fas fa-star mr-1"></i>${q.maxScore} คะแนน</span>
+            if (rawQText) {
+              parsedEssayQuestions.push({ question: rawQText, image: imgUrl, maxScore: maxScore || 5 });
+            }
+          });
+
+          if (parsedEssayQuestions.length > 0) {
+            document.getElementById('essay-preview').classList.remove('hidden');
+            const previewLimit = 3;
+            document.getElementById('essay-preview-content').innerHTML = parsedEssayQuestions.slice(0, previewLimit).map((q, i) => `
+              <div class="border-2 border-orange-300 rounded-lg p-4 bg-gradient-to-br from-white to-orange-50 hover:shadow-lg transition">
+                <div class="flex items-start justify-between mb-3">
+                  <p class="font-bold text-gray-900 flex-1"><span class="text-orange-600 bg-orange-100 px-2 py-1 rounded">ข้อที่ ${i + 1}</span> ${q.question}</p>
+                  <span class="badge badge-warning ml-2 whitespace-nowrap"><i class="fas fa-star mr-1"></i>${q.maxScore} คะแนน</span>
+                </div>
+                ${q.image ? `<img src="${q.image}" class="my-2 max-h-40 rounded border object-contain">` : ''}
+                <div class="bg-gradient-to-r from-orange-50 to-amber-50 rounded p-3 text-gray-600 text-sm border-l-4 border-orange-400">
+                  <i class="fas fa-pen-nib mr-2 text-orange-500"></i> <strong>พื้นที่สำหรับตอบอัตนัย</strong>
+                </div>
               </div>
-              ${q.image ? `<img src="${q.image}" class="my-2 max-h-40 rounded border object-contain">` : ''}
-              <div class="bg-gradient-to-r from-orange-50 to-amber-50 rounded p-3 text-gray-600 text-sm border-l-4 border-orange-400">
-                <i class="fas fa-pen-nib mr-2 text-orange-500"></i> <strong>พื้นที่สำหรับตอบอัตนัย</strong>
-              </div>
-            </div>
-          `).join('');
-          
-          let countText = `✓ พบ <strong class="text-orange-600">${parsedEssayQuestions.length}</strong> ข้อสอบอัตนัย`;
-          if (parsedEssayQuestions.length > previewLimit) {
-            countText += ` (แสดง ${previewLimit} ข้อแรก)`;
+            `).join('');
+            
+            let countText = `✓ พบ <strong class="text-orange-600">${parsedEssayQuestions.length}</strong> ข้อสอบอัตนัย`;
+            if (parsedEssayQuestions.length > previewLimit) {
+              countText += ` (แสดง ${previewLimit} ข้อแรก)`;
+            }
+            document.getElementById('essay-preview-count').innerHTML = countText;
+            showAlert('success', 'แปลงสำเร็จ', `พบข้อสอบอัตนัย ${parsedEssayQuestions.length} ข้อ พร้อมคะแนนแล้ว`);
+          } else {
+            showAlert('error', 'แปลงไม่สำเร็จ', 'ไม่พบข้อสอบที่ถูกต้องตามรูปแบบ');
           }
-          document.getElementById('essay-preview-count').innerHTML = countText;
-          showAlert('success', 'แปลงสำเร็จ', `พบข้อสอบอัตนัย ${parsedEssayQuestions.length} ข้อ พร้อมคะแนนแล้ว`);
-        } else {
-          showAlert('error', 'แปลงไม่สำเร็จ', 'ไม่พบข้อสอบที่ถูกต้องตามรูปแบบ');
+        } finally {
+          hideLoading();
         }
       }, 300);
     }
@@ -2085,83 +2088,77 @@ Score: 1</pre>
         return;
       }
 
-      const submitBtn = e.target.querySelector('button[type="submit"]');
-      const originalHTML = submitBtn.innerHTML;
-      submitBtn.disabled = true;
-      submitBtn.innerHTML = '<i class="fas fa-spinner spin mr-2"></i> กำลังบันทึก...';
+      showLoading('กำลังบันทึกข้อสอบ...');
 
       setTimeout(async () => {
-        const editExamId = document.getElementById('edit-exam-id').value;
-        const totalScore = parseInt(document.getElementById('exam-total-score').value) || 0;
-        const passingScore = parseFloat(document.getElementById('exam-passing-score').value) || 0;
+        try {
+          const editExamId = document.getElementById('edit-exam-id').value;
+          const totalScore = parseInt(document.getElementById('exam-total-score').value) || 0;
+          const passingScore = parseFloat(document.getElementById('exam-passing-score').value) || 0;
 
-        if (editExamId) {
-          const exam = appData.find(d => d.__backendId === editExamId);
-          if (!exam) {
-            showAlert('error', 'ผิดพลาด', 'ไม่พบข้อสอบที่ต้องแก้ไข');
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = originalHTML;
-            return;
-          }
+          if (editExamId) {
+            const exam = appData.find(d => d.__backendId === editExamId);
+            if (!exam) {
+              showAlert('error', 'ผิดพลาด', 'ไม่พบข้อสอบที่ต้องแก้ไข');
+              return;
+            }
 
-          const updatedExam = {
-            ...exam,
-            subject_name: document.getElementById('exam-subject-name').value,
-            total_score: totalScore,
-            passing_score: passingScore,
-            time_limit: parseInt(document.getElementById('exam-time-limit').value),
-            score_per_question: parseFloat(document.getElementById('exam-score-per-question').value),
-            is_visible: document.getElementById('exam-visible').checked,
-            show_answer: document.getElementById('exam-show-answer').checked,
-            shuffle_questions: document.getElementById('exam-shuffle-questions').checked,
-            shuffle_choices: document.getElementById('exam-shuffle-choices').checked,
-            questions: JSON.stringify({ mc: parsedMCQuestions, essay: parsedEssayQuestions })
-          };
+            const updatedExam = {
+              ...exam,
+              subject_name: document.getElementById('exam-subject-name').value,
+              total_score: totalScore,
+              passing_score: passingScore,
+              time_limit: parseInt(document.getElementById('exam-time-limit').value),
+              score_per_question: parseFloat(document.getElementById('exam-score-per-question').value),
+              is_visible: document.getElementById('exam-visible').checked,
+              show_answer: document.getElementById('exam-show-answer').checked,
+              shuffle_questions: document.getElementById('exam-shuffle-questions').checked,
+              shuffle_choices: document.getElementById('exam-shuffle-choices').checked,
+              questions: JSON.stringify({ mc: parsedMCQuestions, essay: parsedEssayQuestions })
+            };
 
-          const result = await window.dataSdk.update(updatedExam);
-          if (result.isOk) {
-            showAlert('success', 'สำเร็จ', 'อัปเดตข้อสอบเรียบร้อยแล้ว');
-            resetExamForm();
+            const result = await window.dataSdk.update(updatedExam);
+            if (result.isOk) {
+              showAlert('success', 'สำเร็จ', 'อัปเดตข้อสอบเรียบร้อยแล้ว');
+              resetExamForm();
+            } else {
+              showAlert('error', 'ผิดพลาด', 'ไม่สามารถอัปเดตข้อสอบได้');
+            }
           } else {
-            showAlert('error', 'ผิดพลาด', 'ไม่สามารถอัปเดตข้อสอบได้');
-          }
-        } else {
-          const exams = getExams();
-          if (exams.length >= 999) {
-            showAlert('warning', 'ถึงขีดจำกัด', 'ไม่สามารถเพิ่มข้อสอบได้อีก');
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = originalHTML;
-            return;
-          }
+            const exams = getExams();
+            if (exams.length >= 999) {
+              showAlert('warning', 'ถึงขีดจำกัด', 'ไม่สามารถเพิ่มข้อสอบได้อีก');
+              return;
+            }
 
-          const newExam = {
-            id: generateId(),
-            type: 'exam',
-            member_id: currentUser.__backendId,
-            subject_name: document.getElementById('exam-subject-name').value,
-            total_score: totalScore,
-            passing_score: passingScore,
-            time_limit: parseInt(document.getElementById('exam-time-limit').value),
-            score_per_question: parseFloat(document.getElementById('exam-score-per-question').value),
-            is_visible: document.getElementById('exam-visible').checked,
-            show_answer: document.getElementById('exam-show-answer').checked,
-            shuffle_questions: document.getElementById('exam-shuffle-questions').checked,
-            shuffle_choices: document.getElementById('exam-shuffle-choices').checked,
-            questions: JSON.stringify({ mc: parsedMCQuestions, essay: parsedEssayQuestions }),
-            created_at: new Date().toISOString()
-          };
+            const newExam = {
+              id: generateId(),
+              type: 'exam',
+              member_id: currentUser.__backendId,
+              subject_name: document.getElementById('exam-subject-name').value,
+              total_score: totalScore,
+              passing_score: passingScore,
+              time_limit: parseInt(document.getElementById('exam-time-limit').value),
+              score_per_question: parseFloat(document.getElementById('exam-score-per-question').value),
+              is_visible: document.getElementById('exam-visible').checked,
+              show_answer: document.getElementById('exam-show-answer').checked,
+              shuffle_questions: document.getElementById('exam-shuffle-questions').checked,
+              shuffle_choices: document.getElementById('exam-shuffle-choices').checked,
+              questions: JSON.stringify({ mc: parsedMCQuestions, essay: parsedEssayQuestions }),
+              created_at: new Date().toISOString()
+            };
 
-          const result = await window.dataSdk.create(newExam);
-          if (result.isOk) {
-            showAlert('success', 'สำเร็จ', 'บันทึกข้อสอบเรียบร้อยแล้ว');
-            resetExamForm();
-          } else {
-            showAlert('error', 'ผิดพลาด', 'ไม่สามารถบันทึกข้อสอบได้');
+            const result = await window.dataSdk.create(newExam);
+            if (result.isOk) {
+              showAlert('success', 'สำเร็จ', 'บันทึกข้อสอบเรียบร้อยแล้ว');
+              resetExamForm();
+            } else {
+              showAlert('error', 'ผิดพลาด', 'ไม่สามารถบันทึกข้อสอบได้');
+            }
           }
+        } finally {
+          hideLoading();
         }
-
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = originalHTML;
       }, 300);
     });
 
@@ -2209,56 +2206,86 @@ Score: 1</pre>
     }
 
     async function toggleExamVisibility(backendId) {
-      const exam = appData.find(d => d.__backendId === backendId);
-      if (exam) {
-        await window.dataSdk.update({ ...exam, is_visible: !exam.is_visible });
+      showLoading('กำลังอัปเดตสถานะข้อสอบ...');
+      try {
+        const exam = appData.find(d => d.__backendId === backendId);
+        if (exam) {
+          await window.dataSdk.update({ ...exam, is_visible: !exam.is_visible });
+        }
+      } finally {
+        hideLoading();
       }
     }
 
     async function toggleExamAnswer(backendId) {
-      const exam = appData.find(d => d.__backendId === backendId);
-      if (exam) {
-        await window.dataSdk.update({ ...exam, show_answer: !exam.show_answer });
+      showLoading('กำลังอัปเดตสถานะเฉลย...');
+      try {
+        const exam = appData.find(d => d.__backendId === backendId);
+        if (exam) {
+          await window.dataSdk.update({ ...exam, show_answer: !exam.show_answer });
+        }
+      } finally {
+        hideLoading();
       }
     }
 
     async function toggleShuffleQuestions(backendId) {
-      const exam = appData.find(d => d.__backendId === backendId);
-      if (exam) {
-        await window.dataSdk.update({ ...exam, shuffle_questions: !exam.shuffle_questions });
+      showLoading('กำลังอัปเดตการสุ่มข้อ...');
+      try {
+        const exam = appData.find(d => d.__backendId === backendId);
+        if (exam) {
+          await window.dataSdk.update({ ...exam, shuffle_questions: !exam.shuffle_questions });
+        }
+      } finally {
+        hideLoading();
       }
     }
 
     async function toggleShuffleChoices(backendId) {
-      const exam = appData.find(d => d.__backendId === backendId);
-      if (exam) {
-        await window.dataSdk.update({ ...exam, shuffle_choices: !exam.shuffle_choices });
+      showLoading('กำลังอัปเดตการสุ่มตัวเลือก...');
+      try {
+        const exam = appData.find(d => d.__backendId === backendId);
+        if (exam) {
+          await window.dataSdk.update({ ...exam, shuffle_choices: !exam.shuffle_choices });
+        }
+      } finally {
+        hideLoading();
       }
     }
 
     async function duplicateExam(backendId) {
-      const exam = appData.find(d => d.__backendId === backendId);
-      if (exam) {
-        const newExam = {
-          ...exam,
-          id: generateId(),
-          subject_name: exam.subject_name + ' (สำเนา)',
-          created_at: new Date().toISOString()
-        };
-        delete newExam.__backendId;
-        
-        const result = await window.dataSdk.create(newExam);
-        if (result.isOk) {
-          showAlert('success', 'สำเร็จ', 'ทำซ้ำข้อสอบเรียบร้อย');
+      showLoading('กำลังทำซ้ำข้อสอบ...');
+      try {
+        const exam = appData.find(d => d.__backendId === backendId);
+        if (exam) {
+          const newExam = {
+            ...exam,
+            id: generateId(),
+            subject_name: exam.subject_name + ' (สำเนา)',
+            created_at: new Date().toISOString()
+          };
+          delete newExam.__backendId;
+          
+          const result = await window.dataSdk.create(newExam);
+          if (result.isOk) {
+            showAlert('success', 'สำเร็จ', 'ทำซ้ำข้อสอบเรียบร้อย');
+          }
         }
+      } finally {
+        hideLoading();
       }
     }
 
     function deleteExam(backendId) {
       showConfirmDelete('คุณต้องการลบข้อสอบนี้ใช่หรือไม่?', async () => {
-        const exam = appData.find(d => d.__backendId === backendId);
-        if (exam) {
-          await window.dataSdk.delete(exam);
+        showLoading('กำลังลบข้อสอบ...');
+        try {
+          const exam = appData.find(d => d.__backendId === backendId);
+          if (exam) {
+            await window.dataSdk.delete(exam);
+          }
+        } finally {
+          hideLoading();
         }
       });
     }
@@ -2267,16 +2294,41 @@ Score: 1</pre>
       const exam = appData.find(d => d.__backendId === backendId);
       const newTime = parseInt(document.getElementById(`time-${backendId}`).value);
       if (exam && newTime > 0) {
-        await window.dataSdk.update({ ...exam, time_limit: newTime });
-        showAlert('success', 'สำเร็จ', 'อัปเดตเวลาเรียบร้อย');
+        showLoading('กำลังบันทึกเวลาสอบ...');
+        try {
+          await window.dataSdk.update({ ...exam, time_limit: newTime });
+          showAlert('success', 'สำเร็จ', 'อัปเดตเวลาเรียบร้อย');
+        } finally {
+          hideLoading();
+        }
       }
+    }
+
+    function deleteStudent(backendId) {
+      showConfirmDelete('คุณต้องการลบข้อมูลผู้สอบนี้ใช่หรือไม่?', async () => {
+        showLoading('กำลังลบข้อมูลผู้สอบ...');
+        try {
+          const student = appData.find(d => d.__backendId === backendId && d.type === 'student');
+          if (student) {
+            await window.dataSdk.delete(student);
+            showAlert('success', 'สำเร็จ', 'ลบข้อมูลผู้สอบเรียบร้อยแล้ว');
+          }
+        } finally {
+          hideLoading();
+        }
+      });
     }
 
     function deleteResult(backendId) {
       showConfirmDelete('คุณต้องการลบผลสอบนี้ใช่หรือไม่?', async () => {
-        const result_data = appData.find(d => d.__backendId === backendId);
-        if (result_data) {
-          await window.dataSdk.delete(result_data);
+        showLoading('กำลังลบผลสอบ...');
+        try {
+          const result_data = appData.find(d => d.__backendId === backendId);
+          if (result_data) {
+            await window.dataSdk.delete(result_data);
+          }
+        } finally {
+          hideLoading();
         }
       });
     }
@@ -2327,50 +2379,62 @@ Score: 1</pre>
       const exam = getExams().find(e => e.id === currentGradingResult.subject_id);
       if (!exam) return;
 
-      const questions = (typeof exam.questions === 'string') ? JSON.parse(exam.questions) : exam.questions;
-      let essayScore = 0;
+      showLoading('กำลังบันทึกคะแนนอัตนัย...');
 
-      questions.essay.forEach((q, i) => {
-        const scoreInput = document.getElementById(`essay-score-${i}`);
-        if (scoreInput) {
-          essayScore += parseFloat(scoreInput.value) || 0;
+      try {
+        const questions = (typeof exam.questions === 'string') ? JSON.parse(exam.questions) : exam.questions;
+        let essayScore = 0;
+
+        questions.essay.forEach((q, i) => {
+          const scoreInput = document.getElementById(`essay-score-${i}`);
+          if (scoreInput) {
+            essayScore += parseFloat(scoreInput.value) || 0;
+          }
+        });
+
+        const mcScore = currentGradingResult.mc_score || 0;
+        const totalScore = mcScore + essayScore;
+
+        const result = await window.dataSdk.update({
+          ...currentGradingResult,
+          score: totalScore,
+          essay_score: essayScore,
+          graded: true
+        });
+
+        if (result.isOk) {
+          hideModal('grading-modal');
+          showAlert('success', 'สำเร็จ', 'บันทึกคะแนนเรียบร้อย');
+          currentGradingResult = null;
         }
-      });
-
-      const mcScore = currentGradingResult.mc_score || 0;
-      const totalScore = mcScore + essayScore;
-
-      const result = await window.dataSdk.update({
-        ...currentGradingResult,
-        score: totalScore,
-        essay_score: essayScore,
-        graded: true
-      });
-
-      if (result.isOk) {
-        hideModal('grading-modal');
-        showAlert('success', 'สำเร็จ', 'บันทึกคะแนนเรียบร้อย');
-        currentGradingResult = null;
+      } finally {
+        hideLoading();
       }
     }
 
     // Profile
     document.getElementById('profile-form').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const fullname = document.getElementById('profile-fullname').value;
-      const email = document.getElementById('profile-email').value;
-      const newPassword = document.getElementById('profile-password').value;
-
       if (!currentUser) return;
 
-      const updatedUser = { ...currentUser, fullname, email };
-      if (newPassword) updatedUser.password = newPassword;
+      showLoading('กำลังบันทึกข้อมูลส่วนตัว...');
 
-      const result = await window.dataSdk.update(updatedUser);
-      if (result.isOk) {
-        currentUser = updatedUser;
-        document.getElementById('admin-name').textContent = updatedUser.fullname;
-        showAlert('success', 'สำเร็จ', 'บันทึกข้อมูลส่วนตัวเรียบร้อย');
+      try {
+        const fullname = document.getElementById('profile-fullname').value;
+        const email = document.getElementById('profile-email').value;
+        const newPassword = document.getElementById('profile-password').value;
+
+        const updatedUser = { ...currentUser, fullname, email };
+        if (newPassword) updatedUser.password = newPassword;
+
+        const result = await window.dataSdk.update(updatedUser);
+        if (result.isOk) {
+          currentUser = updatedUser;
+          document.getElementById('admin-name').textContent = updatedUser.fullname;
+          showAlert('success', 'สำเร็จ', 'บันทึกข้อมูลส่วนตัวเรียบร้อย');
+        }
+      } finally {
+        hideLoading();
       }
     });
 
@@ -2455,73 +2519,70 @@ Score: 1</pre>
     // Student Exam Functions
     document.getElementById('student-form').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const btn = e.target.querySelector('button[type="submit"]');
-      const originalHTML = btn.innerHTML;
-      btn.disabled = true;
-      btn.innerHTML = '<i class="fas fa-spinner spin mr-2"></i> กำลังเข้าสู่ระบบสอบ...';
+      showLoading('กำลังเข้าสู่ระบบสอบ...');
 
       setTimeout(async () => {
-        const subjectId = document.getElementById('subject-select').value;
-        const exam = appData.find(ex => ex.id === subjectId && ex.type === 'exam');
-        
-        if (!exam) {
-          btn.disabled = false;
-          btn.innerHTML = originalHTML;
-          showAlert('error', 'ผิดพลาด', 'ไม่พบรายวิชาที่เลือก');
-          return;
-        }
-
-        currentExam = exam;
-        const studentInfo = {
-          id: generateId(),
-          type: 'student',
-          member_id: currentExam.member_id,
-          student_id: document.getElementById('student-id').value,
-          fullname: document.getElementById('student-name').value,
-          class_name: document.getElementById('student-class').value,
-          room: document.getElementById('student-room').value,
-          number: document.getElementById('student-number').value,
-          subject_id: exam.id,
-          subject_name: exam.subject_name,
-          started_at: new Date().toISOString()
-        };
-
-        const result = await window.dataSdk.create(studentInfo);
-        btn.disabled = false;
-        btn.innerHTML = originalHTML;
-        
-        if (result.isOk) {
-          document.getElementById('exam-student-info').textContent = 
-            `${studentInfo.student_id} ${studentInfo.fullname} ${studentInfo.class_name}/${studentInfo.room} เลขที่ ${studentInfo.number}`;
-          document.getElementById('exam-subject-info').textContent = exam.subject_name;
+        try {
+          const subjectId = document.getElementById('subject-select').value;
+          const exam = appData.find(ex => ex.id === subjectId && ex.type === 'exam');
           
-          examTimeLeft = exam.time_limit * 60;
-          warningCount = 0;
-          studentAnswers = { mc: {}, essay: {} };
-          currentQuestionIndex = 0;
-          isSubmitting = false;
+          if (!exam) {
+            showAlert('error', 'ผิดพลาด', 'ไม่พบรายวิชาที่เลือก');
+            return;
+          }
 
-          const questions = (typeof exam.questions === 'string') ? JSON.parse(exam.questions) : exam.questions;
-          
-          const processedMc = questions.mc.map((q, qIndex) => ({
-            ...q,
-            originalIndex: qIndex
-          }));
-
-          const processedEssay = questions.essay.map((q, qIndex) => ({
-            ...q,
-            originalIndex: qIndex
-          }));
-
-          currentExam.parsedQuestions = {
-            mc: exam.shuffle_questions ? shuffleArray([...processedMc]) : processedMc,
-            essay: exam.shuffle_questions ? shuffleArray([...processedEssay]) : processedEssay
+          currentExam = exam;
+          const studentInfo = {
+            id: generateId(),
+            type: 'student',
+            member_id: currentExam.member_id,
+            student_id: document.getElementById('student-id').value,
+            fullname: document.getElementById('student-name').value,
+            class_name: document.getElementById('student-class').value,
+            room: document.getElementById('student-room').value,
+            number: document.getElementById('student-number').value,
+            subject_id: exam.id,
+            subject_name: exam.subject_name,
+            started_at: new Date().toISOString()
           };
 
-          showPage('exam');
-          startExamTimer();
-          renderQuestion();
-          setupExamProtection();
+          const result = await window.dataSdk.create(studentInfo);
+          
+          if (result.isOk) {
+            document.getElementById('exam-student-info').textContent = 
+              `${studentInfo.student_id} ${studentInfo.fullname} ${studentInfo.class_name}/${studentInfo.room} เลขที่ ${studentInfo.number}`;
+            document.getElementById('exam-subject-info').textContent = exam.subject_name;
+            
+            examTimeLeft = exam.time_limit * 60;
+            warningCount = 0;
+            studentAnswers = { mc: {}, essay: {} };
+            currentQuestionIndex = 0;
+            isSubmitting = false;
+
+            const questions = (typeof exam.questions === 'string') ? JSON.parse(exam.questions) : exam.questions;
+            
+            const processedMc = questions.mc.map((q, qIndex) => ({
+              ...q,
+              originalIndex: qIndex
+            }));
+
+            const processedEssay = questions.essay.map((q, qIndex) => ({
+              ...q,
+              originalIndex: qIndex
+            }));
+
+            currentExam.parsedQuestions = {
+              mc: exam.shuffle_questions ? shuffleArray([...processedMc]) : processedMc,
+              essay: exam.shuffle_questions ? shuffleArray([...processedEssay]) : processedEssay
+            };
+
+            showPage('exam');
+            startExamTimer();
+            renderQuestion();
+            setupExamProtection();
+          }
+        } finally {
+          hideLoading();
         }
       }, 300);
     });
@@ -2670,102 +2731,95 @@ Score: 1</pre>
 
       if (examTimer) clearInterval(examTimer);
 
-      const loadingOverlay = document.createElement('div');
-      loadingOverlay.className = 'fixed inset-0 bg-black/50 z-50 flex items-center justify-center';
-      loadingOverlay.innerHTML = `
-        <div class="bg-white rounded-2xl p-8 text-center">
-          <i class="fas fa-circle-notch spin text-5xl text-primary-500 mb-4 block"></i>
-          <p class="text-gray-600 text-lg font-medium">กำลังส่งคำตอบ...</p>
-        </div>
-      `;
-      document.body.appendChild(loadingOverlay);
+      showLoading('กำลังส่งคำตอบ...');
 
-      const rawQuestions = typeof currentExam.questions === 'string' ? JSON.parse(currentExam.questions) : currentExam.questions;
-      let mcScore = 0;
+      try {
+        const rawQuestions = typeof currentExam.questions === 'string' ? JSON.parse(currentExam.questions) : currentExam.questions;
+        let mcScore = 0;
 
-      rawQuestions.mc.forEach((q, idx) => {
-        const studentAns = studentAnswers.mc[idx];
-        if (studentAns === q.answer) {
-          mcScore += (q.score || currentExam.score_per_question || 1);
+        rawQuestions.mc.forEach((q, idx) => {
+          const studentAns = studentAnswers.mc[idx];
+          if (studentAns === q.answer) {
+            mcScore += (q.score || currentExam.score_per_question || 1);
+          }
+        });
+
+        const hasEssay = rawQuestions.essay && rawQuestions.essay.length > 0;
+        
+        const examResult = {
+          id: generateId(),
+          type: 'result',
+          member_id: currentExam.member_id,
+          student_id: document.getElementById('student-id').value,
+          fullname: document.getElementById('student-name').value,
+          class_name: document.getElementById('student-class').value,
+          room: document.getElementById('student-room').value,
+          number: document.getElementById('student-number').value,
+          subject_id: currentExam.id,
+          subject_name: currentExam.subject_name,
+          answers: JSON.stringify(studentAnswers),
+          mc_score: mcScore,
+          score: mcScore,
+          total_score: currentExam.total_score,
+          submitted_at: new Date().toISOString(),
+          graded: !hasEssay,
+          warnings: warningCount,
+          cheating_detected: warningCount >= 4
+        };
+
+        const result = await window.dataSdk.create(examResult);
+
+        if (result.isOk) {
+          const passingScore = currentExam.passing_score !== undefined && currentExam.passing_score !== null && !isNaN(currentExam.passing_score) 
+            ? parseFloat(currentExam.passing_score) 
+            : Math.ceil(currentExam.total_score * 0.5);
+
+          const isPassed = examResult.score >= passingScore;
+          const resultIcon = document.getElementById('result-icon');
+          const resultTitle = document.getElementById('result-title');
+          const resultMessage = document.getElementById('result-message');
+
+          if (warningCount >= 4) {
+            resultIcon.className = 'w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6';
+            resultIcon.innerHTML = '<i class="fas fa-ban text-5xl text-red-500"></i>';
+            resultTitle.textContent = 'ยุติการสอบ';
+            resultTitle.className = 'text-3xl font-bold mb-2 text-red-600';
+            resultMessage.textContent = 'ตรวจพบการทุจริตระหว่างการสอบ';
+          } else if (isPassed) {
+            resultIcon.className = 'w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6';
+            resultIcon.innerHTML = '<i class="fas fa-trophy text-5xl text-green-500"></i>';
+            resultTitle.textContent = 'สอบผ่านเกณฑ์!';
+            resultTitle.className = 'text-3xl font-bold mb-2 text-green-600';
+            resultMessage.textContent = `ยินดีด้วย! คุณสอบผ่านเกณฑ์ (${passingScore} คะแนนขึ้นไป)`;
+          } else {
+            resultIcon.className = 'w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6';
+            resultIcon.innerHTML = '<i class="fas fa-book-reader text-5xl text-red-500"></i>';
+            resultTitle.textContent = 'ไม่ผ่านเกณฑ์';
+            resultTitle.className = 'text-3xl font-bold mb-2 text-red-600';
+            resultMessage.textContent = `คุณยังไม่ผ่านเกณฑ์ (${passingScore} คะแนน) พยายามต่อไปนะ`;
+          }
+
+          document.getElementById('result-score').textContent = warningCount >= 4 ? '-' : (hasEssay ? `${mcScore} (รอตรวจอัตนัย)` : examResult.score);
+          document.getElementById('result-total').textContent = examResult.total_score;
+          document.getElementById('result-info').innerHTML = `
+            <p><strong>รหัสนักเรียน:</strong> ${examResult.student_id}</p>
+            <p><strong>ชื่อ-สกุล:</strong> ${examResult.fullname}</p>
+            <p><strong>ชั้น/ห้อง:</strong> ${examResult.class_name}/${examResult.room}</p>
+            <p><strong>รายวิชา:</strong> ${examResult.subject_name}</p>
+            <p><strong>เกณฑ์ผ่าน:</strong> ${passingScore} / ${examResult.total_score} คะแนน</p>
+            <p><strong>เวลาส่ง:</strong> ${new Date(examResult.submitted_at).toLocaleString('th-TH')}</p>
+          `;
+
+          if (currentExam.show_answer && warningCount < 4) {
+            displayAnswerReview(examResult, rawQuestions);
+          }
+
+          showPage('result');
         }
-      });
-
-      const hasEssay = rawQuestions.essay && rawQuestions.essay.length > 0;
-      
-      const examResult = {
-        id: generateId(),
-        type: 'result',
-        member_id: currentExam.member_id,
-        student_id: document.getElementById('student-id').value,
-        fullname: document.getElementById('student-name').value,
-        class_name: document.getElementById('student-class').value,
-        room: document.getElementById('student-room').value,
-        number: document.getElementById('student-number').value,
-        subject_id: currentExam.id,
-        subject_name: currentExam.subject_name,
-        answers: JSON.stringify(studentAnswers),
-        mc_score: mcScore,
-        score: mcScore,
-        total_score: currentExam.total_score,
-        submitted_at: new Date().toISOString(),
-        graded: !hasEssay,
-        warnings: warningCount,
-        cheating_detected: warningCount >= 4
-      };
-
-      const result = await window.dataSdk.create(examResult);
-      if (document.body.contains(loadingOverlay)) {
-        document.body.removeChild(loadingOverlay);
+      } finally {
+        hideLoading();
+        isSubmitting = false;
       }
-
-      if (result.isOk) {
-        const passingScore = currentExam.passing_score !== undefined && currentExam.passing_score !== null && !isNaN(currentExam.passing_score) 
-          ? parseFloat(currentExam.passing_score) 
-          : Math.ceil(currentExam.total_score * 0.5);
-
-        const isPassed = examResult.score >= passingScore;
-        const resultIcon = document.getElementById('result-icon');
-        const resultTitle = document.getElementById('result-title');
-        const resultMessage = document.getElementById('result-message');
-
-        if (warningCount >= 4) {
-          resultIcon.className = 'w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6';
-          resultIcon.innerHTML = '<i class="fas fa-ban text-5xl text-red-500"></i>';
-          resultTitle.textContent = 'ยุติการสอบ';
-          resultTitle.className = 'text-3xl font-bold mb-2 text-red-600';
-          resultMessage.textContent = 'ตรวจพบการทุจริตระหว่างการสอบ';
-        } else if (isPassed) {
-          resultIcon.className = 'w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6';
-          resultIcon.innerHTML = '<i class="fas fa-trophy text-5xl text-green-500"></i>';
-          resultTitle.textContent = 'สอบผ่านเกณฑ์!';
-          resultTitle.className = 'text-3xl font-bold mb-2 text-green-600';
-          resultMessage.textContent = `ยินดีด้วย! คุณสอบผ่านเกณฑ์ (${passingScore} คะแนนขึ้นไป)`;
-        } else {
-          resultIcon.className = 'w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6';
-          resultIcon.innerHTML = '<i class="fas fa-book-reader text-5xl text-red-500"></i>';
-          resultTitle.textContent = 'ไม่ผ่านเกณฑ์';
-          resultTitle.className = 'text-3xl font-bold mb-2 text-red-600';
-          resultMessage.textContent = `คุณยังไม่ผ่านเกณฑ์ (${passingScore} คะแนน) พยายามต่อไปนะ`;
-        }
-
-        document.getElementById('result-score').textContent = warningCount >= 4 ? '-' : (hasEssay ? `${mcScore} (รอตรวจอัตนัย)` : examResult.score);
-        document.getElementById('result-total').textContent = examResult.total_score;
-        document.getElementById('result-info').innerHTML = `
-          <p><strong>รหัสนักเรียน:</strong> ${examResult.student_id}</p>
-          <p><strong>ชื่อ-สกุล:</strong> ${examResult.fullname}</p>
-          <p><strong>ชั้น/ห้อง:</strong> ${examResult.class_name}/${examResult.room}</p>
-          <p><strong>รายวิชา:</strong> ${examResult.subject_name}</p>
-          <p><strong>เกณฑ์ผ่าน:</strong> ${passingScore} / ${examResult.total_score} คะแนน</p>
-          <p><strong>เวลาส่ง:</strong> ${new Date(examResult.submitted_at).toLocaleString('th-TH')}</p>
-        `;
-
-        if (currentExam.show_answer && warningCount < 4) {
-          displayAnswerReview(examResult, rawQuestions);
-        }
-
-        showPage('result');
-      }
-      isSubmitting = false;
     }
 
     function resetExamState() {
