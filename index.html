@@ -1431,21 +1431,46 @@ Score: 1</pre>
     }
 
     function viewStudentAnswers(backendId) {
-      const result = appData.find(d => d.__backendId === backendId && d.type === 'result');
-      if (!result) return;
+      const resultData = appData.find(d => d.__backendId === backendId && d.type === 'result');
+      if (!resultData) return;
 
-      const exam = getExams().find(e => e.id === result.subject_id);
-      if (!exam) {
-        showAlert('warning', 'ไม่พบข้อมูล', 'ไม่พบรายวิชาของข้อสอบนี้');
-        return;
+      const exam = appData.find(e => e.id === resultData.subject_id && e.type === 'exam');
+      const rawQuestions = exam && exam.questions ? (typeof exam.questions === 'string' ? JSON.parse(exam.questions) : exam.questions) : { mc: [], essay: [] };
+      const rawAnswers = resultData.answers ? (typeof resultData.answers === 'string' ? JSON.parse(resultData.answers) : resultData.answers) : { mc: {}, essay: {} };
+
+      // Ensure answers support both Legacy structure & New Question-ID mapped structure
+      const answers = {
+        mc: rawAnswers.mc || {},
+        essay: rawAnswers.essay || {}
+      };
+
+      // Ensure questions have stable IDs matching
+      const questions = {
+        mc: (rawQuestions.mc || []).map((q, idx) => ({ ...q, id: q.id || `mc_${idx}` })),
+        essay: (rawQuestions.essay || []).map((q, idx) => ({ ...q, id: q.id || `essay_${idx}` }))
+      };
+
+      let html = `
+        <div class="bg-gray-50 rounded-xl p-4 mb-4 grid grid-cols-1 md:grid-cols-2 gap-2 text-sm border">
+          <p><strong>ผู้สอบ:</strong> ${resultData.fullname} (${resultData.student_id})</p>
+          <p><strong>ชั้น/ห้อง:</strong> ${resultData.class_name}/${resultData.room} เลขที่ ${resultData.number}</p>
+          <p><strong>รายวิชา:</strong> ${resultData.subject_name}</p>
+          <p><strong>เวลาส่งคำตอบ:</strong> ${new Date(resultData.submitted_at).toLocaleString('th-TH')}</p>
+          <p><strong>คะแนนรวม:</strong> <span class="text-primary-600 font-bold text-base">${resultData.score} / ${resultData.total_score}</span></p>
+          <p><strong>สถานะการตรวจ:</strong> ${resultData.graded ? '<span class="badge badge-success">ตรวจแล้ว</span>' : '<span class="badge badge-warning">รอตรวจ</span>'}</p>
+        </div>
+      `;
+
+      if (resultData.cheating_detected || resultData.warnings >= 4) {
+        html += `
+          <div class="bg-red-50 border-2 border-red-300 rounded-xl p-4 mb-4 text-center text-red-700">
+            <i class="fas fa-exclamation-triangle text-3xl text-red-500 mb-2"></i>
+            <p class="font-bold">ตรวจพบการทุจริตในระหว่างสอบ (${resultData.warnings || 4} ครั้ง)</p>
+          </div>
+        `;
       }
 
-      const questions = typeof exam.questions === 'string' ? JSON.parse(exam.questions) : exam.questions;
-      const answers = typeof result.answers === 'string' ? JSON.parse(result.answers) : (result.answers || { mc: {}, essay: {} });
-
-      document.getElementById('student-review-title').textContent = `ประวัติคำตอบ: ${result.student_id || ''} ${result.fullname || ''} (${result.subject_name || ''})`;
-      
-      let html = '';
+      html += `<h4 class="font-bold text-gray-800 mb-3"><i class="fas fa-list-ol mr-2 text-primary-500"></i>รายละเอียดการตอบข้อสอบ:</h4>`;
       if (questions && questions.mc && questions.mc.length > 0) {
         html += '<h4 class="font-bold text-gray-800 mb-2">ตอนที่ 1: ข้อสอบปรนัย</h4>';
         questions.mc.forEach((q, idx) => {
